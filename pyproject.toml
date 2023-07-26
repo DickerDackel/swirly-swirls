@@ -1,6 +1,6 @@
 [project]
-name = "FIXME"
-description = "FIXME"
+name = "swirlyswirls"
+description = "Swirly swirling particles"
 version = "0.0.1"
 readme = "README.md"
 
@@ -19,14 +19,16 @@ classifiers = [
 dependencies = [
     "pygame-ce",
     "cooldown @ git+https://github.com/dickerdackel/cooldown",
+    "pygamehelpers @ git+https://github.com/dickerdackel/pygamehelpers",
+    "tinyecs @ git+https://github.com/dickerdackel/tinyecs",
 ]
 
 [project.scripts]
-FIXME = "package.module:main"
+swirly-demo = "swirlyswirls.demo:main"
 
 [project-urls]
-homepage = "https://github.com/dickerdackel/FIXME"
-bugtracker = "https://github.com/DickerDackel/FIXME/issues"
+homepage = "https://github.com/dickerdackel/swirly-swirls"
+bugtracker = "https://github.com/DickerDackel/swirly-swirls/issues"
 
 [build-system]
 requires = ["setuptools"]
