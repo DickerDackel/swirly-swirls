@@ -82,4 +82,6 @@ def emitter_system(dt, eid, emitter, trsa, lifetime):
 
     for i in range(ept):
         position, momentum = emitter.zone.emit()
-        emitter.launcher(position=trsa.translate + position, momentum=momentum)
+        emitter.launcher(position=trsa.translate + position,
+                         momentum=momentum,
+                         parent=eid)
