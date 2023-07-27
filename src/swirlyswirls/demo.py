@@ -27,7 +27,11 @@ def main():
         sys.exit(0)
 
     fullname = f'swirlyswirls.demos.{opts.demo}'
-    imp = import_module(fullname)
+    try:
+        imp = import_module(fullname)
+    except ModuleNotFoundError as e:
+        sys.exit(e)
+
     cls = getattr(imp, 'Demo')
 
     app = App(TITLE, SCREEN, FPS)
