@@ -260,3 +260,29 @@ def container_system(dt, eid, container, trsa, momentum, angular_momentum, sprit
         momentum.y = -momentum.y
         ecs.add_component(eid, 'angular-momentum', -angular_momentum)
         trsa.translate.y += 2 * (container.height - sprite.rect.bottom)
+
+
+def deadzone_system(dt, eid, container, trsa):
+    """Kill sprites moving outside defined boundaries
+
+    To avoid sprites flying off to infinity, a dead zone can be defined, that
+    should be sufficiently larger than the screen.
+
+    Entities entering that zone (or actually, leaving the container rect) will
+    be removed.
+
+    Parameters
+    ----------
+    container : pygame.rect.Rect
+        The boundaries within sprites stay alive.
+
+    trsa : swirlyswirl.compsys.TRSA
+        The location of the entity.
+
+    Returns
+    -------
+    None
+
+    """
+    if not container.collidepoint(trsa.translate):
+        ecs.remove_entity(eid)
