@@ -86,7 +86,7 @@ def bubble_system(dt, eid, bubble, sprite, trsa, lifetime, cache):
     None
 
     """
-    def draw(surface, r, highlight_color, base_color):
+    def draw(surface, r, t, highlight_color, base_color):
         pygame.draw.circle(surface, highlight_color, (r, r), r)
         pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
 
@@ -102,7 +102,7 @@ def bubble_system(dt, eid, bubble, sprite, trsa, lifetime, cache):
     if key not in cache:
         image = pygame.Surface((2 * r + 1, 2 * r + 1), flags=pygame.SRCALPHA)
 
-        draw_fkt(image, r, bubble.highlight_color, bubble.base_color)
+        draw_fkt(image, r, t, bubble.highlight_color, bubble.base_color)
 
         cache[key] = image
 

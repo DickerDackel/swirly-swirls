@@ -77,7 +77,7 @@ class Demo(GameState):
         pygame.display.flip()
 
     @staticmethod
-    def draw_box_bubble(surface, r, highlight_color, base_color):
+    def draw_box_bubble(surface, r, t, highlight_color, base_color):
         rect = pygame.Rect(0, 0, 2 * r, 2 * r)
 
         pygame.draw.rect(surface, highlight_color, rect, width=2)
