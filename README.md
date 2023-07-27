@@ -1,3 +1,6 @@
-# Python Project Template
+# swirlyswirls - Particles for tinyecs
 
-Use this to clone new python projects from in github.
+Look at the demos package for examples
+
+Note: compsys.py will probably migrated directly into tinyecs, replacing
+tinyecs.components.
