@@ -26,7 +26,7 @@ class Demo(GameState):
 
         self.label = self.persist.font.render('Press space to toggle momentum', True, 'white')
 
-        self.setup_ecs()
+        self.ecs_register_systems()
 
         self.launch_emitter(self.app.rect.center,
                             Emitter(
@@ -35,32 +35,6 @@ class Demo(GameState):
                                 launcher=partial(self.launch_pond_particle,
                                                  group=self.group, cache=self.cache))
                             )
-
-    def setup_ecs(self):
-        ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
-        ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
-        ecs.add_system(trsa_system, 'trsa', 'sprite', 'cache')
-
-    @staticmethod
-    def launch_pond_particle(position, momentum, group, cache):
-        e = ecs.create_entity()
-        ecs.add_component(e, 'bubble', Bubble(r0=5, r1=10,
-                                              # alpha0=0, alpha1=255,
-                                              alpha0=128, alpha1=0,
-                                              base_color='aqua', highlight_color='white'))
-        ecs.add_component(e, 'sprite', ESprite(group))
-        ecs.add_component(e, 'trsa', TRSA(translate=position))
-        ecs.add_component(e, 'momentum', momentum)
-        ecs.add_component(e, 'lifetime', Cooldown(1))
-        ecs.add_component(e, 'cache', cache)
-
-    @staticmethod
-    def launch_emitter(pos, emitter):
-        e = ecs.create_entity('emitter')
-        ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(pos)))
-        ecs.add_component(e, 'lifetime', Cooldown(5).pause())
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -98,3 +72,30 @@ class Demo(GameState):
         self.group.draw(screen)
 
         pygame.display.flip()
+
+    @staticmethod
+    def ecs_register_systems():
+        ecs.add_system(ecsc.lifetime_system, 'lifetime')
+        ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
+        ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
+        ecs.add_system(trsa_system, 'trsa', 'sprite', 'cache')
+
+    @staticmethod
+    def launch_emitter(pos, emitter):
+        e = ecs.create_entity('emitter')
+        ecs.add_component(e, 'emitter', emitter)
+        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(pos)))
+        ecs.add_component(e, 'lifetime', Cooldown(5).pause())
+
+    @staticmethod
+    def launch_pond_particle(position, momentum, parent, group, cache):
+        e = ecs.create_entity()
+        ecs.add_component(e, 'bubble', Bubble(r0=5, r1=10,
+                                              # alpha0=0, alpha1=255,
+                                              alpha0=128, alpha1=0,
+                                              base_color='aqua', highlight_color='white'))
+        ecs.add_component(e, 'sprite', ESprite(group))
+        ecs.add_component(e, 'trsa', TRSA(translate=position))
+        ecs.add_component(e, 'momentum', momentum)
+        ecs.add_component(e, 'lifetime', Cooldown(1))
+        ecs.add_component(e, 'cache', cache)
