@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
 from random import random
 from pygame import Vector2
 
@@ -17,3 +17,18 @@ class ZoneCircle:
         v = Vector2(r, 0).rotate(phi)
 
         return v, v
+
+@dataclass(kw_only=True)
+class ZoneBeam:
+    v: InitVar[Vector2 | tuple[float, float]]
+    width: InitVar[float] = 32
+    rnd: callable = random
+
+    def __post_init__(self, v, width):
+        self.v = Vector2(v)
+        self.w = Vector2(self.v.y, self.v.x).normalize() * width
+
+    def emit(self):
+        v = self.v * random()
+        w = self.w * (random() - 0.5)
+        return v + w, w
