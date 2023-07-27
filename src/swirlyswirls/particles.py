@@ -40,6 +40,7 @@ class Bubble:
     alpha_easing: callable = lambda x: x
     base_color: str = 'grey70'
     highlight_color: str = 'white'
+    draw_fkt : callable = None
 
     def __hash__(self):
         return id(self)
@@ -85,6 +86,12 @@ def bubble_system(dt, eid, bubble, sprite, trsa, lifetime, cache):
     None
 
     """
+    def draw(surface, r, highlight_color, base_color):
+        pygame.draw.circle(surface, highlight_color, (r, r), r)
+        pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
+
+    draw_fkt = bubble.draw_fkt if bubble.draw_fkt else draw
+
     t = lifetime.normalized
 
     r = int((bubble.r1 - bubble.r0) * bubble.r_easing(t) + bubble.r0)
@@ -95,8 +102,7 @@ def bubble_system(dt, eid, bubble, sprite, trsa, lifetime, cache):
     if key not in cache:
         image = pygame.Surface((2 * r + 1, 2 * r + 1), flags=pygame.SRCALPHA)
 
-        pygame.draw.circle(image, bubble.highlight_color, (r, r), r)
-        pygame.draw.circle(image, bubble.base_color, (r + 2, r), r - 2)
+        draw_fkt(image, r, bubble.highlight_color, bubble.base_color)
 
         cache[key] = image
 
