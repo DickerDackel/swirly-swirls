@@ -1,21 +1,17 @@
-
 import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
+import swirlyswirls.compsys as swcs
 
 from functools import partial
-from random import random
 
 from cooldown import Cooldown
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import in_quad, out_quad
 
-from swirlyswirls.spritegroup import ReversedGroup
-from swirlyswirls.compsys import (ESprite, TRSA, momentum_system, trsa_system)
-from swirlyswirls.particles import Bubble, bubble_system
-from swirlyswirls.emitter import Emitter, emitter_system
-from swirlyswirls.zones import ZoneBeam
+from swirlyswirls import (ReversedGroup, Bubble, bubble_system, Emitter,
+                          emitter_system, ZoneBeam)
 
 
 class Demo(GameState):
@@ -90,14 +86,14 @@ class Demo(GameState):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
         ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
-        ecs.add_system(momentum_system, 'momentum', 'trsa')
-        ecs.add_system(trsa_system, 'trsa', 'sprite', 'cache')
+        ecs.add_system(swcs.momentum_system, 'momentum', 'trsa')
+        ecs.add_system(swcs.trsa_system, 'trsa', 'sprite', 'cache')
 
     @staticmethod
     def launch_emitter(pos, emitter):
         e = ecs.create_entity()
         ecs.add_component(e, 'emitter', emitter())
-        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(pos)))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(pos)))
         ecs.add_component(e, 'lifetime', Cooldown(0.5))
 
     @staticmethod
@@ -110,7 +106,7 @@ class Demo(GameState):
                                               highlight_color='white',
                                               draw_fkt=Demo.draw_box_bubble))
         ecs.add_component(e, 'lifetime', Cooldown(1.5))
-        ecs.add_component(e, 'sprite', ESprite(group))
-        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(position)))
+        ecs.add_component(e, 'sprite', swcs.ESprite(group))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(position)))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'cache', cache)

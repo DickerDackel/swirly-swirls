@@ -1,6 +1,7 @@
 import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
+import swirlyswirls.compsys as swcs
 
 from functools import partial
 
@@ -9,11 +10,8 @@ from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import *  # noqa
 
-from swirlyswirls.spritegroup import ReversedGroup
-from swirlyswirls.compsys import (ESprite, TRSA, momentum_system, trsa_system)
-from swirlyswirls.particles import Bubble, bubble_system
-from swirlyswirls.emitter import Emitter, emitter_system
-from swirlyswirls.zones import ZoneRect
+from swirlyswirls import (ReversedGroup, Bubble, bubble_system, Emitter,
+                          emitter_system, ZoneRect)
 
 
 class Demo(GameState):
@@ -27,10 +25,8 @@ class Demo(GameState):
 
         self.ecs_register_systems()
 
-        print(self.app.rect)
         r = self.app.rect.copy()
         r.center = (0, 0)
-        print(r)
         self.launch_emitter(self.app.rect.center,
                             Emitter(
                                 ept0=3, ept1=1, tick=0.5,
@@ -72,13 +68,13 @@ class Demo(GameState):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
         ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
-        ecs.add_system(trsa_system, 'trsa', 'sprite', 'cache')
+        ecs.add_system(swcs.trsa_system, 'trsa', 'sprite', 'cache')
 
     @staticmethod
     def launch_emitter(pos, emitter):
         e = ecs.create_entity('emitter')
         ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(pos)))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(pos)))
         ecs.add_component(e, 'lifetime', Cooldown(5).pause())
 
     @staticmethod
@@ -89,8 +85,8 @@ class Demo(GameState):
                                               alpha0=128, alpha1=0, alpha_easing=out_quad,  # noqa
                                               base_color='aqua', highlight_color='white',
                                               draw_fkt=Demo.draw_splash_bubble))
-        ecs.add_component(e, 'sprite', ESprite(group))
-        ecs.add_component(e, 'trsa', TRSA(translate=position))
+        ecs.add_component(e, 'sprite', swcs.ESprite(group))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(3))
         ecs.add_component(e, 'cache', cache)

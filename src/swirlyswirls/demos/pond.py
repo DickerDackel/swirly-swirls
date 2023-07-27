@@ -1,6 +1,7 @@
 import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
+import swirlyswirls.compsys as swcs
 
 from functools import partial
 
@@ -8,11 +9,8 @@ from cooldown import Cooldown
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 
-from swirlyswirls.spritegroup import ReversedGroup
-from swirlyswirls.compsys import (ESprite, TRSA, momentum_system, trsa_system)
-from swirlyswirls.particles import Bubble, bubble_system
-from swirlyswirls.emitter import Emitter, emitter_system
-from swirlyswirls.zones import ZoneCircle
+from swirlyswirls import (ReversedGroup, Bubble, bubble_system, Emitter,
+                          emitter_system, ZoneCircle)
 
 
 class Demo(GameState):
@@ -49,9 +47,9 @@ class Demo(GameState):
             case pygame.KEYDOWN if e.key == pygame.K_SPACE:
                 self.momentum = not self.momentum
                 if self.momentum:
-                    ecs.add_system(momentum_system, 'momentum', 'trsa')
+                    ecs.add_system(swcs.momentum_system, 'momentum', 'trsa')
                 else:
-                    ecs.remove_system(momentum_system)
+                    ecs.remove_system(swcs.momentum_system)
 
     def update(self, dt):
         """Update frame by delta time dt."""
@@ -78,13 +76,13 @@ class Demo(GameState):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
         ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
-        ecs.add_system(trsa_system, 'trsa', 'sprite', 'cache')
+        ecs.add_system(swcs.trsa_system, 'trsa', 'sprite', 'cache')
 
     @staticmethod
     def launch_emitter(pos, emitter):
         e = ecs.create_entity('emitter')
         ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'trsa', TRSA(translate=Vector2(pos)))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(pos)))
         ecs.add_component(e, 'lifetime', Cooldown(5).pause())
 
     @staticmethod
@@ -94,8 +92,8 @@ class Demo(GameState):
                                               # alpha0=0, alpha1=255,
                                               alpha0=128, alpha1=0,
                                               base_color='aqua', highlight_color='white'))
-        ecs.add_component(e, 'sprite', ESprite(group))
-        ecs.add_component(e, 'trsa', TRSA(translate=position))
+        ecs.add_component(e, 'sprite', swcs.ESprite(group))
+        ecs.add_component(e, 'trsa', swcs.TRSA(translate=position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(1))
         ecs.add_component(e, 'cache', cache)
