@@ -190,6 +190,26 @@ def trsa_system(dt, eid, trsa, sprite, cache):
     sprite.rect = sprite.image.get_rect(center=trsa.translate)
 
 
+def sprite_system(dt, eid, sprite, trsa):
+    """Write position data into the sprite rect.
+
+    This function transfers `trsa.translate` into `sprite.rect.center`, thus
+    preparing the sprite to be rendered.
+
+    Use this after all systems that might modify `sprite.image` or `trsa` have
+    finished.
+
+    Parameters
+    ----------
+    sprite : swirlyswirls.compsys.ESprite
+        The sprite
+    trsa : swirlyswirls.compsys.TRSA
+        Location and transform information to apply to the sprite.
+
+    """
+    sprite.rect.center = trsa.translate
+
+
 def fade_system(dt, eid, fade, trsa):
     """Apply alpha blending to the trsa.
 
