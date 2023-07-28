@@ -90,6 +90,7 @@ class Demo(GameState):
         ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
         ecs.add_system(swcs.momentum_system, 'momentum', 'trsa')
         ecs.add_system(swcs.trsa_system, 'trsa', 'sprite', 'cache')
+        ecs.add_system(swcs.sprite_system, 'sprite', 'trsa')
 
     @staticmethod
     def launch_emitter(pos, momentum, emitter):
