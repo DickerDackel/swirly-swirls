@@ -85,7 +85,7 @@ class Demo(GameState):
                                               # alpha0=0, alpha1=255,
                                               alpha0=128, alpha1=0, alpha_easing=out_quad,  # noqa
                                               base_color='aqua', highlight_color='white',
-                                              draw_fkt=Demo.draw_splash_bubble))
+                                              image_factory=Demo.draw_splash_bubble))
         ecs.add_component(e, 'sprite', swcs.ESprite(group))
         ecs.add_component(e, 'trsa', swcs.TRSA(translate=position))
         ecs.add_component(e, 'momentum', momentum)

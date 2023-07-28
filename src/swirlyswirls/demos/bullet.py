@@ -108,7 +108,7 @@ class Demo(GameState):
                                               alpha0=255, alpha1=0,
                                               r_easing=out_quint, alpha_easing=out_quint,
                                               base_color='orange', highlight_color='yellow',
-                                              draw_fkt=Demo.draw_box_bubble))
+                                              image_factory=Demo.draw_box_bubble))
         ecs.add_component(e, 'lifetime', Cooldown(1))
         ecs.add_component(e, 'sprite', swcs.ESprite(group))
         ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(position)))
