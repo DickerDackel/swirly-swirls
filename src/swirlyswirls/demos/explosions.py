@@ -33,21 +33,21 @@ class Demo(GameState):
             Emitter(
                 ept0=2, ept1=5, tick=0.1,
                 zone=ZoneCircle(r0=0, r1=16),
-                launcher=partial(self.launch_pond_particle,
+                launcher=partial(self.launch_explosion_particle,
                                  group=self.group, cache=self.cache,
                                  max_size=8)
             ),
             Emitter(
                 ept0=2, ept1=5, tick=0.1,
                 zone=ZoneCircle(r0=0, r1=32),
-                launcher=partial(self.launch_pond_particle,
+                launcher=partial(self.launch_explosion_particle,
                                  group=self.group, cache=self.cache,
                                  max_size=16)
             ),
             Emitter(
                 ept0=2, ept1=5, tick=0.1,
                 zone=ZoneCircle(r0=0, r1=64),
-                launcher=partial(self.launch_pond_particle,
+                launcher=partial(self.launch_explosion_particle,
                                  group=self.group, cache=self.cache,
                                  max_size=32)
             ),
@@ -124,7 +124,7 @@ class Demo(GameState):
         ecs.add_component(e, 'lifetime', Cooldown(1))
 
     @staticmethod
-    def launch_pond_particle(position, momentum, parent, group, cache, max_size):
+    def launch_explosion_particle(position, momentum, parent, group, cache, max_size):
         e = ecs.create_entity()
         ecs.add_component(e, 'bubble', Bubble(r0=2, r1=max_size,
                                               alpha0=255, alpha1=0,
