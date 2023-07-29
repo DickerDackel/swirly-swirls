@@ -1,5 +1,15 @@
+import tinyecs as ecs
+import swirlyswirls.zones
+
+from dataclasses import dataclass, InitVar, field
 from cooldown import Cooldown
-from dataclasses import dataclass, InitVar
+from pygame import Vector2
+
+# See Freya Holmer "The simple yet powerful math we don't talk about":
+#     https://www.youtube.com/watch?v=R6UB7mVO3fY
+_lerp     = lambda a, b, t: (1 - t) * a + b * t
+_inv_lerp = lambda a, b, v: (v - a) / (b - a)
+_remap    = lambda a0, a1, b0, b1, v: _lerp(b0, b1, _inv_lerp(a0, a1, v))
 
 
 @dataclass(kw_only=True)
@@ -19,19 +29,49 @@ class Emitter:
     tick : float = 0.1
         The heartbeat of the emitter.
 
+    total_emits: int = None
+        if set, limit the total number of emits.  Set `exhausted` (see below)
+        when reached.
+
+        Lifetime does still need to be controlled by a `lifetime` component.
+        Reaching `total_emits` will not terminate the emitter object itself.
+
     zone : callable
         The zone function.  See `emitter_system` for details.
+
+    particle_factory: callable
+        A callback to create a particle.
+
+        This function is expected to receive the following parameters:
+
+            t: float
+                The normalized lifetime of the emitter (e.g. to shrink
+                particle size relative to the age of the emitter)
+            position: Vector2
+                The position where the particle is emitted
+            momentum: Vector2
+                The momentum of the particle
+
+    inherit_momentum: 0
+        Which momentum to inherit:
+            0: emitter + zone (default)
+            1: emitter only
+            2: zone only
+
 
     """
     ept0: int = 1
     ept1: int = 1
     tick: InitVar[float] = 0.1
-    zone: callable
-    launcher: callable
+    total_emits: InitVar[int] = None
+    exhausted: bool = field(init=False, default=None)
+    zone: swirlyswirls.zones.Zone
+    particle_factory: callable
+    inherit_momentum: int = 0
 
-    def __post_init__(self, tick):
-        self.tick = Cooldown(tick)
-        self.exhausted = False
+    def __post_init__(self, tick, total_emits):
+        self.tick = Cooldown(tick, cold=True)
+        self.remaining = total_emits if total_emits is not None else -1
 
 
 def emitter_system(dt, eid, emitter, trsa, lifetime):
@@ -76,12 +116,30 @@ def emitter_system(dt, eid, emitter, trsa, lifetime):
     if emitter.tick.hot:
         return
 
+    if emitter.remaining == 0:
+        return
+
     emitter.tick.reset()
     t = lifetime.normalized
-    ept = int((emitter.ept1 - emitter.ept0) * t + emitter.ept0)
 
-    for i in range(ept):
-        position, momentum = emitter.zone.emit()
-        emitter.launcher(position=trsa.translate + position,
-                         momentum=momentum,
-                         parent=eid)
+    emits = int(_lerp(emitter.ept0, emitter.ept1, t))
+
+    if emitter.remaining > 0:
+        emits = min(emits, emitter.remaining)
+        emitter.remaining -= emits
+
+    if emitter.inherit_momentum & 1 and ecs.eid_has(eid, 'momentum'):
+        e_momentum = ecs.comp_of_eid(eid, 'momentum')
+    else:
+        e_momentum = Vector2(0, 0)
+
+    for i in range(emits):
+        position, z_momentum = emitter.zone.emit()
+
+        momentum = Vector2()
+        if emitter.inherit_momentum & 1:
+            momentum += e_momentum
+        if emitter.inherit_momentum & 2:
+            momentum += z_momentum
+
+        emitter.particle_factory(t=t, position=trsa.translate + position, momentum=momentum)
