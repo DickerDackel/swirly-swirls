@@ -5,6 +5,12 @@ from dataclasses import dataclass, InitVar
 from random import random
 from pygame import Vector2
 
+# See Freya Holmer "The simple yet powerful math we don't talk about":
+#     https://www.youtube.com/watch?v=R6UB7mVO3fY
+_lerp     = lambda a, b, t: (1 - t) * a + b * t
+_inv_lerp = lambda a, b, v: (v - a) / (b - a)
+_remap    = lambda a0, a1, b0, b1, v: _lerp(b0, b1, _inv_lerp(a0, a1, v))
+
 
 @dataclass(kw_only=True)
 class Zone(ABC):
@@ -22,8 +28,6 @@ class Zone(ABC):
     The base class has no input attributes.  Extend as you please.
 
     """
-    ...
-
     @abstractmethod
     def emit(self, t=None):
         """Emit a coordinate/momentum tuple
@@ -50,6 +54,55 @@ class Zone(ABC):
 
 
 @dataclass(kw_only=True)
+class ZonePoint(Zone):
+    """A single point zone.
+
+    Emits always return Vector2(0, 0).
+
+    momentum returns a vector of random length between 0 and `speed`, in the
+    random direction between `phi0` and `phi1`.
+
+    Parameters
+    ----------
+    speed: float = 0
+        An optional momentum to launch with.  This vector is randomly scaled
+        between 0 and 1.
+
+    phi0, phi1: = 0, 360
+        Start and end angle of the circular zone.  If you only want to emit
+        from a half circle, set these to 0 and 180 or 90 and 270.
+
+    rnd_p, rnd_m:
+        Alternative random functions, e.g. if you want a gauss distribution
+        instead of a normal random value.
+
+        Note, that this functions are expected to be parameterless.  Provide a
+        lambda if you need them to be configurable.
+
+    Attributes
+    ----------
+    See Parameters
+
+
+    """
+    speed: float = 0
+    phi0: float = 0
+    phi1: float = 360
+
+    def emit(self, t=None):
+        """Emit a single point.
+
+        Since emits are always relative to the emitter's position, this
+        function always returns Vector2(0, 0).
+
+        """
+        momentum = Vector2(self.speed * random(), 0)
+        momentum.rotate_ip(_lerp(self.phi0, self.phi1, random()))
+
+        return Vector2(0, 0), momentum
+
+
+@dataclass(kw_only=True)
 class ZoneCircle(Zone):
     """A circular zone.
 
@@ -58,6 +111,7 @@ class ZoneCircle(Zone):
     r0, r1 : float = 0, 64
         minimum and maximum radius of the zone.  If the minimum is different
         from 0, the zone is a ring instead of a circle.
+
     phi0, phi1: = 0, 360
         Start and end angle of the circular zone.  If you only want to emit
         from a half circle, set these to 0 and 180 or 90 and 270.
