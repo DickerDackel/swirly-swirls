@@ -29,9 +29,16 @@ class ESprite(pygame.sprite.Sprite):
         A tag to identify this sprite.  Can e.g. be used for image caching.
 
     """
-    def __init__(self, *groups, tag=None):
+    def __init__(self, *groups, tag=None, image=None):
         super().__init__(*groups)
         self.tag = tag
+
+        if image is None:
+            self.image = pygame.surface.Surface((0, 0))
+        else:
+            self.image = image
+
+        self.rect = self.image.get_rect(bottomright=(-1, -1))
 
     def shutdown_(self):
         self.kill()
