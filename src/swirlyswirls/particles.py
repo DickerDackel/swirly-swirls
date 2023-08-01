@@ -1,112 +1,132 @@
 import pygame
 
-from dataclasses import dataclass, InitVar
-from swirlyswirls.compsys import ESprite, cache_key
+from dataclasses import dataclass
+from functools import lru_cache
+
+_lerp     = lambda a, b, t: (1 - t) * a + b * t
+
+
+@lru_cache(maxsize=1024)
+def bubble_image_factory(size, alpha, base_color, highlight_color):
+    surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
+
+    r = size // 2 - 1
+    pygame.draw.circle(surface, highlight_color, (r, r), r)
+    pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
+
+    surface.set_alpha(alpha)
+
+    return surface
+
+
+@lru_cache(maxsize=1024)
+def squabble_image_factory(size, alpha, base_color, highlight_color):
+    surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
+    surface.fill(highlight_color)
+
+    r = surface.get_rect().move(-1, 1)
+    pygame.draw.rect(surface, base_color, r)
+
+    surface.set_alpha(alpha)
+
+    return surface
+
+
+@lru_cache(maxsize=1024)
+def _default_image_factory(size, alpha):
+    surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
+    surface.fill('white')
+
+    surface.set_alpha(alpha)
+
+    return surface
 
 
 @dataclass(kw_only=True)
-class Bubble:
-    """Data for the `bubble_system`.
+class Particle:
+    """Data to manage the lifecycle of a single particle.
 
-    See `bubble_system` for details.
+    See `particle_system` for details.
 
-    Note
-    ----
-    The caching mechanisms in here are intended for use with the `trsa_system`.
 
     Parameters
     ----------
-    r0, r1 : float = 2, 32
-        initial and final radius
-    r_easing : callable = lambda x: x
-        An easing function to put over the interpolation of r0 and r1
-    alpha0, alpha1: float = 255, 0
+    size_min, size_max: float = 2, 32
+        initial and final surface size
+
+    size_ease: callable = lambda x: x
+        An easing function to put over the interpolation of size_min and size_max
+
+    alpha_min, alpha_max: float = 255, 0
         Initial and final alpha of the image
-    alpha_easing : callable = lambda x: x
-        An easing function to put over the interpolation of alpha0 and alpha1
-    base_color, highlight_color : pygame.color.Color
-        Colors of the bubble and its edge
-    sprite_group : pygame.sprite.Group
-        Sprite group to put the bubble object into
-    image_cache : dict
-        see `swirlyswirl.compsys.trsa_system` for details.
+
+    alpha_ease : callable = lambda x: x
+        An easing function to put over the interpolation of alpha_min and alpha_max
+
+    cycle: bool = False
+        Should the particle repeat or end its transmogrification
+
+    image_factory : callable = swirlyswirls.particles._bubble_default_image_factory
+        A default drawing function for the Bubble component
+
+    Attributes
+    ----------
+    All parameters are also accessible as attributes.
+
+    size: float
+        The lerped size between size_min and size_max for the time t.  Used by the
+        `bubble_system`.
+
+    alpha: float
+        The lerped alpha between alpha_min and alpha_max for the time t.  Used by the
+        `bubble_system`.
 
     """
-    r0: float = 2
-    r1: float = 32
-    r_easing: callable = lambda x: x
-    alpha0: float = 255
-    alpha1: float = 0
-    alpha_easing: callable = lambda x: x
-    base_color: str = 'grey70'
-    highlight_color: str = 'white'
-    image_factory : callable = None
+    size_min: float = 2
+    size_max: float = 32
+    size_ease: callable = lambda x: x
+    alpha_min: float = 255
+    alpha_max: float = 255
+    alpha_ease: callable = lambda x: x
+    cycle: bool = False
+    image_factory : callable = _default_image_factory
 
-    def __hash__(self):
-        return id(self)
+    def __post_init__(self):
+        self.alpha = self.alpha_min
+        self.size = self.size_min
+
+    @property
+    def image(self):
+        return self.image_factory(size=self.size, alpha=self.alpha)
 
 
-def bubble_system(dt, eid, bubble, sprite, trsa, lifetime, cache):
-    """Manage a bubble entity.
+def particle_system(dt, eid, particle, lifetime):
+    """Progress size and alpha over lifetime.
 
-    A bubble exists over the specified `lifetime`.  After that, the entity is
-    removed.
-
-    The lifetime is also used as ramp for the radius and alpha of the bubble
-    sprite.
-
-    Both radius and alpha are calculated as followed:
-
-        t is the lifetime mapped onto a 0-1 interval
-        x = (x_t1 - x_t0) * easing(t) + x_t0
-
-    Then the bubble image is generated with the current radius.  The alpha
-    value is passed over to `trsa`
-
-    See `swirlyswirls.compsys.TRSA` for information about cached images,
-    scaling and rotation.
+    The `Particle` class configures the dynamicall generation of an `image`
+    property to use as a particle with changing size.  The particle_system is
+    the functional part for that component.
 
     Parameters
     ----------
-    bubble : swirlyswirls.particles.Bubble
-        Bubble data for the system
-
-    sprite : swirlyswirl.compsys.ESprite
-        The sprite to store the bubble image in.
-
-    trsa : swirlyswirls.compsys.TRSA
-        Alpha will be stored here.
+    particle: swirlyswirls.particles.Particle
+        Particle data for the system.
 
     lifetime : Cooldown
-        Used for both, the radius and alpha ramp, as well as the actual
-        lifetime if used with `tinyecs.components.lifetime_system`
+        Used for both, the size and alpha ramp.
+
+        The removal of the entity at the end of `lifetime` should be handled by
+        tinyecs.components.lifetime_system.  It's not the scope of this system.
 
     Returns
     -------
     None
 
     """
-    def draw(surface, r, t, highlight_color, base_color):
-        pygame.draw.circle(surface, highlight_color, (r, r), r)
-        pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
-
-    image_factory = bubble.image_factory if bubble.image_factory else draw
+    if lifetime.cold and particle.cycle:
+        lifetime.reset()
 
     t = lifetime.normalized
 
-    r = int((bubble.r1 - bubble.r0) * bubble.r_easing(t) + bubble.r0)
-    alpha = int((bubble.alpha1 - bubble.alpha0) * bubble.alpha_easing(t) + bubble.alpha0)
-
-    tag = f'bubble-{int(r)}'
-    key = cache_key(tag, 0, 1, 255)
-    if key not in cache:
-        image = pygame.Surface((2 * r + 1, 2 * r + 1), flags=pygame.SRCALPHA)
-
-        image_factory(image, r, t, bubble.highlight_color, bubble.base_color)
-
-        cache[key] = image
-
-    trsa.alpha = alpha
-    sprite.tag = tag
-    sprite.image = cache[key]
-    sprite.rect = sprite.image.get_rect(bottomleft=(-1, -1))
+    particle.size = _lerp(particle.size_min, particle.size_max, particle.size_ease(t))
+    particle.alpha = _lerp(particle.alpha_min, particle.alpha_max, particle.alpha_ease(t))

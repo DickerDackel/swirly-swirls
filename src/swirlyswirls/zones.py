@@ -103,6 +103,71 @@ class ZonePoint(Zone):
 
 
 @dataclass(kw_only=True)
+class ZoneLine:
+    """A zone emitting around on a line.
+
+    Parameters
+    ----------
+    v: Vector2
+        A vector representing the line.  This is always rooted at (0, 0).
+
+    speed : Vector2
+        A vector for the direction of the momentum
+
+    variance : float = 0..1
+        The length of the momentum vector will be scaled by a random between
+        `1 - variance` and `1 + variance`.
+
+        A variance of 0 gives you an exact speed.
+        A variance of 0.5 gives you random speed between `0.5 * speed` and
+        `1.5 * speed`.
+
+    rnd_p, rnd_m:
+        Alternative random functions, e.g. if you want a gauss distribution
+        instead of a normal random value.
+
+        Note, that this functions are expected to be parameterless.  Provide a
+        lambda if you need them to be configurable.
+
+    Attributes
+    ----------
+    See Parameters.
+
+    """
+    v: InitVar[Vector2 | tuple[float, float]]
+    speed: InitVar[Vector2 | tuple[float, float]] = None
+    variance: float = 0
+    rnd_p: callable = random
+    rnd_m: callable = random
+
+    def __post_init__(self, v, speed):
+        self.v = Vector2(v)
+        self.speed = Vector2(speed) if speed else Vector2()
+
+    def emit(self, t=None):
+        """Emit a point along the line.
+
+        Parameters
+        ----------
+        t : any
+            t is ignored by this zone.
+
+        Returns
+        -------
+        position : Vector2
+            A random point on the defined line.
+
+        momentum: Vector2
+            The perpendicular distance to the vector of the beam.
+
+        """
+
+        v = self.v * self.rnd_p()
+        momentum = self.speed * (1 + self.rnd_m() * 2 * self.variance - self.variance)
+        return v, momentum
+
+
+@dataclass(kw_only=True)
 class ZoneCircle(Zone):
     """A circular zone.
 
@@ -159,6 +224,61 @@ class ZoneCircle(Zone):
         v = Vector2(r, 0).rotate(phi)
 
         return v, v
+
+
+@dataclass(kw_only=True)
+class ZoneRect:
+    """A rectangular zone.
+
+    Use this e.g. to emit particles all over the screen.
+
+    Parameters
+    ----------
+    r: pygame.rect.Rect
+        The rect to emit from
+
+    rnd_p, rnd_m:
+        Alternative random functions, e.g. if you want a gauss distribution
+        instead of a normal random value.
+
+        Note, that this functions are expected to be parameterless.  Provide a
+        lambda if you need them to be configurable.
+
+    Attributes
+    ----------
+    See Parameters.
+
+    """
+    r: pygame.rect.Rect
+    rnd_p: callable = random
+    rnd_m: callable = random
+
+    def emit(self, t=None):
+        """Emit a point within a rectangle.
+
+        Note: returned points are always relative to the center of the
+        rectangle, within
+
+            (-width / 2, -height / 2) and (width / 2, height / 2).
+
+        Parameters
+        ----------
+        t : any
+            t is ignored by this zone.
+
+        Returns
+        -------
+        position : Vector2
+            A random point within the defined rectangle.
+
+        momentum: Vector2
+            Same as position
+
+        """
+        pos = Vector2(int(self.r.width * (self.rnd_p() - 0.5)),
+                      int(self.r.height * (self.rnd_p() - 0.5)))
+        momentum = pos - Vector2(self.r.center)
+        return pos, momentum
 
 
 @dataclass(kw_only=True)
@@ -219,122 +339,3 @@ class ZoneBeam:
         v = self.v * self.rnd_p()
         w = self.w * (self.rnd_m() - 0.5)
         return v + w, w
-
-
-@dataclass(kw_only=True)
-class ZoneRect:
-    """A rectangular zone.
-
-    Use this e.g. to emit particles all over the screen.
-
-    Parameters
-    ----------
-    r: pygame.rect.Rect
-        The rect to emit from
-
-    rnd_p, rnd_m:
-        Alternative random functions, e.g. if you want a gauss distribution
-        instead of a normal random value.
-
-        Note, that this functions are expected to be parameterless.  Provide a
-        lambda if you need them to be configurable.
-
-    Attributes
-    ----------
-    See Parameters.
-
-    """
-    r: pygame.rect.Rect
-    rnd_p: callable = random
-    rnd_m: callable = random
-
-    def emit(self, t=None):
-        """Emit a point within a rectangle.
-
-        Note: returned points are always relative to the center of the
-        rectangle, within
-
-            (-width / 2, -height / 2) and (width / 2, height / 2).
-
-        Parameters
-        ----------
-        t : any
-            t is ignored by this zone.
-
-        Returns
-        -------
-        position : Vector2
-            A random point within the defined rectangle.
-
-        momentum: Vector2
-            Same as position
-
-        """
-        pos = Vector2(int(self.r.width * (self.rnd_p() - 0.5)),
-                      int(self.r.height * (self.rnd_p() - 0.5)))
-        momentum = pos - Vector2(self.r.center)
-        return pos, momentum
-
-
-@dataclass(kw_only=True)
-class ZoneLine:
-    """A zone emitting around on a line.
-
-    Parameters
-    ----------
-    v: Vector2
-        A vector representing the line.  This is always rooted at (0, 0).
-
-    speed : Vector2
-        A vector for the direction of the momentum
-
-    variance : float = 0..1
-        The length of the momentum vector will be
-
-            speed * (1 + rnd_m() * variance)
-
-        so it can be scaled between `speed` and `speed * variance`
-
-    rnd_p, rnd_m:
-        Alternative random functions, e.g. if you want a gauss distribution
-        instead of a normal random value.
-
-        Note, that this functions are expected to be parameterless.  Provide a
-        lambda if you need them to be configurable.
-
-    Attributes
-    ----------
-    See Parameters.
-
-    """
-    v: InitVar[Vector2 | tuple[float, float]]
-    speed: InitVar[Vector2 | tuple[float, float]] = None
-    variance: float = 0
-    rnd_p: callable = random
-    rnd_m: callable = random
-
-    def __post_init__(self, v, speed):
-        self.v = Vector2(v)
-        self.speed = Vector2(speed) if speed else Vector2()
-
-    def emit(self, t=None):
-        """Emit a point along the line.
-
-        Parameters
-        ----------
-        t : any
-            t is ignored by this zone.
-
-        Returns
-        -------
-        position : Vector2
-            A random point on the defined line.
-
-        momentum: Vector2
-            The perpendicular distance to the vector of the beam.
-
-        """
-
-        v = self.v * self.rnd_p()
-        momentum = self.speed * (1 + self.rnd_m() * self.variance)
-        return v, momentum

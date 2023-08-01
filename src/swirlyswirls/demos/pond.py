@@ -1,16 +1,15 @@
 import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
-import swirlyswirls.compsys as swcs
+import swirlyswirls as sw
+import swirlyswirls.particles
+import swirlyswirls.zones
 
 from functools import partial
 
 from cooldown import Cooldown
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-
-from swirlyswirls import (ReversedGroup, Bubble, bubble_system, Emitter,
-                          emitter_system, ZoneCircle)
 
 
 class Demo(GameState):
@@ -19,7 +18,7 @@ class Demo(GameState):
 
         self.title = 'Pond Demo'
         self.cache = {}
-        self.group = ReversedGroup()
+        self.group = sw.ReversedGroup()
         self.momentum = False
 
         self.label = self.persist.font.render('Press space to toggle momentum', True, 'white')
@@ -27,11 +26,12 @@ class Demo(GameState):
         self.ecs_register_systems()
 
         self.launch_emitter(self.app.rect.center,
-                            Emitter(
+                            sw.Emitter(
                                 ept0=3, ept1=3, tick=0.05,
-                                zone=ZoneCircle(r0=0, r1=128),
-                                launcher=partial(self.launch_pond_particle,
-                                                 group=self.group, cache=self.cache))
+                                zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=128),
+                                particle_factory=partial(self.pond_particle_factory,
+                                                 group=self.group, cache=self.cache),
+                                inherit_momentum=3),
                             )
 
     def reset(self, persist=None):
@@ -47,9 +47,9 @@ class Demo(GameState):
             case pygame.KEYDOWN if e.key == pygame.K_SPACE:
                 self.momentum = not self.momentum
                 if self.momentum:
-                    ecs.add_system(swcs.momentum_system, 'momentum', 'trsa')
+                    ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
                 else:
-                    ecs.remove_system(swcs.momentum_system)
+                    ecs.remove_system(ecsc.momentum_system)
 
     def update(self, dt):
         """Update frame by delta time dt."""
@@ -74,27 +74,31 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(emitter_system, 'emitter', 'trsa', 'lifetime')
-        ecs.add_system(bubble_system, 'bubble', 'sprite', 'trsa', 'lifetime', 'cache')
-        ecs.add_system(swcs.trsa_system, 'trsa', 'sprite', 'cache')
-        ecs.add_system(swcs.sprite_system, 'sprite', 'trsa')
+        ecs.add_system(sw.emitter_system, 'emitter', 'position', 'lifetime')
+        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
     @staticmethod
-    def launch_emitter(pos, emitter):
+    def launch_emitter(position, emitter):
         e = ecs.create_entity('emitter')
         ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'trsa', swcs.TRSA(translate=Vector2(pos)))
+        ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'lifetime', Cooldown(5).pause())
 
     @staticmethod
-    def launch_pond_particle(position, momentum, parent, group, cache):
+    def pond_particle_factory(t, position, momentum, group, cache):
         e = ecs.create_entity()
-        ecs.add_component(e, 'bubble', Bubble(r0=5, r1=10,
-                                              # alpha0=0, alpha1=255,
-                                              alpha0=128, alpha1=0,
-                                              base_color='aqua', highlight_color='white'))
-        ecs.add_component(e, 'sprite', swcs.ESprite(group))
-        ecs.add_component(e, 'trsa', swcs.TRSA(translate=position))
+        image_factory = partial(
+            swirlyswirls.particles.bubble_image_factory,
+            base_color='aqua', highlight_color='white')
+
+        p = sw.Particle(size_min=5, size_max=10,
+                        # alpha_min=0, alpha_max=255,
+                        alpha_min=255, alpha_max=0,
+                        image_factory=image_factory)
+        ecs.add_component(e, 'particle', p)
+        ecs.add_component(e, 'sprite', sw.EVSprite(p, group))
+        ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(1))
         ecs.add_component(e, 'cache', cache)
