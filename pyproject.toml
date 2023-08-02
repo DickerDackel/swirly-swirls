@@ -18,9 +18,9 @@ classifiers = [
 
 dependencies = [
     "pygame-ce",
-    "cooldown @ git+https://github.com/dickerdackel/cooldown",
+    "pgcooldown",
+    "tinyecs",
     "pygamehelpers @ git+https://github.com/dickerdackel/pygamehelpers",
-    "tinyecs @ git+https://github.com/dickerdackel/tinyecs",
 ]
 
 [project.scripts]
