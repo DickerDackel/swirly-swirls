@@ -11,7 +11,7 @@ from random import triangular
 from cooldown import Cooldown
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-from pygamehelpers.easing import out_quint
+from pygamehelpers.easing import *  # noqa
 
 
 class Demo(GameState):
@@ -31,16 +31,12 @@ class Demo(GameState):
         #                      cache=self.cache)
         self.emitter = partial(sw.Emitter,
                                ept0=5, ept1=5, tick=0.1,
-                               zone=swirlyswirls.zones.ZonePoint(speed=100, phi0=0, phi1=180),
+                               zone=swirlyswirls.zones.ZonePoint(speed=100, phi0=150, phi1=210),
                                particle_factory=partial(
                                    self.launch_particle,
                                    group=self.group,
                                    cache=self.cache),
                                )
-
-        self.launch_emitter(position=(50, self.app.rect.centery),
-                            momentum=Vector2(100, 0),
-                            emitter=self.emitter)
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -50,16 +46,15 @@ class Demo(GameState):
     def dispatch_event(self, e):
         """Handle user events"""
         super().dispatch_event(e)
-        ...
 
     def update(self, dt):
         """Update frame by delta time dt."""
 
-        # if self.cooldown.cold:
-        #     self.cooldown.reset()
-        #     position = Vector2(self.app.rect.center)
-        #     momentum = Vector2(50, 0)
-        #     self.launch_emitter(position, momentum, self.emitter)
+        if self.cooldown.cold:
+            self.cooldown.reset()
+            position = Vector2(-50, self.app.rect.centery)
+            momentum = Vector2(150, 0)
+            self.launch_emitter(position=position, momentum=momentum, emitter=self.emitter)
 
         ecs.run_all_systems(dt)
 
@@ -96,21 +91,19 @@ class Demo(GameState):
         ecs.add_component(e, 'emitter', emitter())
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'position', Vector2(position))
-        ecs.add_component(e, 'lifetime', Cooldown(5))
+        ecs.add_component(e, 'lifetime', Cooldown(10))
 
     @staticmethod
     def launch_particle(*, t=None, position, momentum, group, cache):
-        # sprite = swcs.ESprite(group)
-        # sprite.image = pygame.surface.Surface((32, 32), flags=pygame.SRCALPHA)
-        # sprite.rect = sprite.image.get_rect(center=position)
-        # pygame.draw.circle(sprite.image, 'yellow', (16, 16), 16, width=1)
         bubble = partial(swirlyswirls.particles.bubble_image_factory,
                          base_color='orange', highlight_color='yellow')
 
-        p = sw.Particle(size_min=2, size_max=32,
-                        alpha_min=255, alpha_max=0,
-                        # r_easing=out_quint, alpha_easing=out_quint,
+        p = sw.Particle(size_min=2, size_max=16, size_ease=out_quint,  # noqa
+                        alpha_min=255, alpha_max=0, alpha_ease=out_quint,  # noqa
                         image_factory=bubble)
+        # p = sw.Particle(size_min=2, size_max=16, size_ease=in_quint,  # noqa
+        #                 alpha_min=255, alpha_max=0, alpha_ease=out_quint,  # noqa
+        #                 image_factory=bubble)
 
         e = ecs.create_entity()
         ecs.add_component(e, 'particle', p)
