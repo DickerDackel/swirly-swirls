@@ -79,20 +79,17 @@ The following components are involved:
 
         Now create the particle factory:
 
-            ```py
             def particle_factory(t, position, momentum, *groups):
                 e = ecs.create_entity()
                 ecs.add_component(e, 'sprite', MySprite(*groups))
                 ecs.add_component(e, 'position', position)
                 if momentum is not None:
                     ecs.add_component(e, 'momentum', momentum)
-            ```
 
-            That will be sufficient, but it lacks e.g. lifecycle management.
-            To add this, write the factory function as it is needed, then wrap
-            it in a `partial` and pass this to the emitter.
+        That will be sufficient, but it lacks e.g. lifecycle management. To add
+        this, write the factory function as it is needed, then wrap it in a
+        `partial` and pass this to the emitter.
 
-            ```py
             def internal_particle_factory(lifetime, position, momentum, *groups):
                 e = ecs.create_entity()
                 ecs.add_component(e, 'lifetime', Cooldown(lifetime))
@@ -102,18 +99,14 @@ The following components are involved:
                     ecs.add_component(e, 'momentum', momentum)
 
             particle_factory = partial(internal_particle_factory, lifetime=10)
-            ```
 
         Define the zone the particles will emit from.  This is the "shape" of
         the emitter:
 
-            ```py
             zone = swirlyswirls.zones.ZoneCircle(r1=64)
-            ```
 
         Create the emitter configuration and the entity:
 
-            ```py
             emitter = swirlyswirls.Emitter(ept0=3, ept1=3, tick=0.1,
                                            zone=zone,
                                            particle_factory=particle_factory)
@@ -122,7 +115,6 @@ The following components are involved:
             e.add_component(e, 'emitter', emitter)
             e.add_component(e, 'position', Vector2(500, 500))
             e.add_component(e, 'lifetime', 10)
-            ```
 
         Finally add the systems:
 
@@ -143,9 +135,10 @@ run `swirlyswirl-demo`, and inspect the `swirlyswirls.bubbles` module.
 import tinyecs as ecs
 import swirlyswirls.zones
 
-from dataclasses import dataclass, InitVar, field
+from dataclasses import dataclass, InitVar
 from cooldown import Cooldown
 from pygame import Vector2
+from swirlyswirls.particles import default_image_factory
 
 _lerp     = lambda a, b, t: (1 - t) * a + b * t
 
@@ -286,3 +279,93 @@ def emitter_system(dt, eid, emitter, position, lifetime):
             momentum += z_momentum
 
         emitter.particle_factory(t=t, position=position + z_position, momentum=momentum)
+
+
+@dataclass(kw_only=True)
+class Particle:
+    """Data to manage the lifecycle of a single particle.
+
+    See `particle_system` for details.
+
+
+    Parameters
+    ----------
+    size_min, size_max: float = 2, 32
+        initial and final surface size
+
+    size_ease: callable = lambda x: x
+        An easing function to put over the interpolation of size_min and size_max
+
+    alpha_min, alpha_max: float = 255, 0
+        Initial and final alpha of the image
+
+    alpha_ease : callable = lambda x: x
+        An easing function to put over the interpolation of alpha_min and alpha_max
+
+    cycle: bool = False
+        Should the particle repeat or end its transmogrification
+
+    image_factory : callable = swirlyswirls.particles._bubble_default_image_factory
+        A default drawing function for the Bubble component
+
+    Attributes
+    ----------
+    All parameters are also accessible as attributes.
+
+    size: float
+        The lerped size between size_min and size_max for the time t.  Used by the
+        `bubble_system`.
+
+    alpha: float
+        The lerped alpha between alpha_min and alpha_max for the time t.  Used by the
+        `bubble_system`.
+
+    """
+    size_min: float = 2
+    size_max: float = 32
+    size_ease: callable = lambda x: x
+    alpha_min: float = 255
+    alpha_max: float = 255
+    alpha_ease: callable = lambda x: x
+    cycle: bool = False
+    image_factory : callable = default_image_factory
+
+    def __post_init__(self):
+        self.alpha = self.alpha_min
+        self.size = self.size_min
+
+    @property
+    def image(self):
+        return self.image_factory(size=self.size, alpha=self.alpha)
+
+
+def particle_system(dt, eid, particle, lifetime):
+    """Progress size and alpha over lifetime.
+
+    The `Particle` class configures the dynamicall generation of an `image`
+    property to use as a particle with changing size.  The particle_system is
+    the functional part for that component.
+
+    Parameters
+    ----------
+    particle: swirlyswirls.particles.Particle
+        Particle data for the system.
+
+    lifetime : Cooldown
+        Used for both, the size and alpha ramp.
+
+        The removal of the entity at the end of `lifetime` should be handled by
+        tinyecs.components.lifetime_system.  It's not the scope of this system.
+
+    Returns
+    -------
+    None
+
+    """
+    if lifetime.cold and particle.cycle:
+        lifetime.reset()
+
+    t = lifetime.normalized
+
+    particle.size = _lerp(particle.size_min, particle.size_max, particle.size_ease(t))
+    particle.alpha = _lerp(particle.alpha_min, particle.alpha_max, particle.alpha_ease(t))
