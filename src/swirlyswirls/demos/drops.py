@@ -95,7 +95,7 @@ class Demo(GameState):
                         alpha_min=128, alpha_max=128,
                         image_factory=bubble)
         ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', sw.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum * (random() + 0.5))
         ecs.add_component(e, 'lifetime', Cooldown(10))

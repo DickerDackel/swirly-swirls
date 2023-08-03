@@ -109,7 +109,7 @@ class Demo(GameState):
         ecs.add_component(e, 'particle', p)
         ecs.add_component(e, 'lifetime', Cooldown(1))
         ecs.add_component(e, 'bubble', bubble)
-        ecs.add_component(e, 'sprite', sw.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'cache', cache)

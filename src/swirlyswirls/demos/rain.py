@@ -84,7 +84,7 @@ class Demo(GameState):
                         alpha_min=128, alpha_max=0, alpha_ease=out_quad,  # noqa
                         image_factory=drop)
         ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', sw.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(3))
