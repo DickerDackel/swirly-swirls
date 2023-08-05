@@ -313,11 +313,12 @@ class ZoneBeam:
     v: InitVar[Vector2 | tuple[float, float]]
     width: InitVar[float] = 32
     rnd_p: callable = random
-    rnd_m: callable = random
+    rnd_m: callable = lambda: triangular(0, 1, mode=0.5)
 
     def __post_init__(self, v, width):
         self.v = Vector2(v)
-        self.w = Vector2(self.v.y, self.v.x).normalize() * width
+        self.w = self.v.normalize().rotate(90) * width
+        # self.w = Vector2(self.v.y, self.v.x).normalize() * width
 
     def emit(self, t=None):
         """Emit a point along the line within `width` distance.
@@ -337,5 +338,5 @@ class ZoneBeam:
 
         """
         v = self.v * self.rnd_p()
-        w = self.w * (self.rnd_m() - 0.5)
-        return v + w, w
+        w = self.w * 4 * (self.rnd_m() - 0.5) + self.v.normalize() * 100
+        return v, w
