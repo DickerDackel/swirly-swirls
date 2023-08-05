@@ -107,8 +107,7 @@ The following components are involved:
 
         Create the emitter configuration and the entity:
 
-            emitter = swirlyswirls.Emitter(ept0=3, ept1=3, tick=0.1,
-                                           zone=zone,
+            emitter = swirlyswirls.Emitter(ept0=3, ept1=3, tick=0.1, zone=zone,
                                            particle_factory=particle_factory)
 
             e = ecs.create_entity()
@@ -119,7 +118,7 @@ The following components are involved:
         Finally add the systems:
 
             ecs.add_system(tinyecs.components.lifetime_system, 'lifetime')
-            ecs.add_system(swirlyswirls.emitter_system, 'emitter', 'lifetime')
+            ecs.add_system(swirlyswirls.emitter_system, 'emitter')
             ecs.add_system(tinyecs.components.momentum_system, 'momentum', 'position')
             ecs.add_system(tinyecs.components.sprite_system, 'sprite', 'position')
 
@@ -162,6 +161,11 @@ class Emitter:
         emit a big burst and then quickly tickle down for the remainder of the
         time.
 
+    duration: float | Cooldown
+        duration of the emits.  This is distinct from lifetime, since it might
+        be necessary to access the emitter after it has finished emitting (e.g.
+        for particles to kill their siblings).
+
     tick : float = 0.1
         The heartbeat of the emitter.
 
@@ -199,24 +203,28 @@ class Emitter:
     ept0: int = 1
     ept1: int = 1
     ept_ease: callable = lambda x: x
+    duration: InitVar[float | Cooldown] = None
     tick: InitVar[float] = 0.1
     total_emits: InitVar[int] = None
     zone: swirlyswirls.zones.Zone
     particle_factory: callable
     inherit_momentum: int = 3
 
-    def __post_init__(self, tick, total_emits):
+    def __post_init__(self, duration, tick, total_emits):
         self.tick = Cooldown(tick, cold=True)
         self.remaining = total_emits if total_emits is not None else -1
+        self.duration = Cooldown(duration) if duration else None
 
 
-def emitter_system(dt, eid, emitter, position, lifetime):
+def emitter_system(dt, eid, emitter, position):
     """The management system for Emitter entities.
 
     The emitter system isn't much more than a heartbeat.
 
+    It's center configuration is the emitter object:
+
     On each `tick`, between `ept0` (entities per tick) and `ept1` entities are
-    launched.
+    launched until `total_emits` is reached or `duration` has passed.
 
     For every entity, the `emiter.zone` function is called without parameters.
     It is expected to return 1. a `position` Vector2, 2. a `momentum` Vector2.
@@ -256,7 +264,13 @@ def emitter_system(dt, eid, emitter, position, lifetime):
         ecs.remove_entity(eid)
 
     emitter.tick.reset()
-    t = lifetime.normalized
+
+    t = 0
+    if emitter.duration is None:
+        if ecs.eid_has(eid, 'lifetime'):
+            t = ecs.comp_of_eid(eid, 'lifetime').normalized
+    else:
+        t = emitter.duration.normalized
 
     emits = int(_lerp(emitter.ept0, emitter.ept1, t))
 

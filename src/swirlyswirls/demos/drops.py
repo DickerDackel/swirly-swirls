@@ -29,8 +29,7 @@ class Demo(GameState):
             v=(self.app.rect.width + 200, 0),
             speed=(100, 700))
 
-        emitter = sw.Emitter(ept0=30, ept1=30, tick=0.1,
-                             zone=zone,
+        emitter = sw.Emitter(ept0=30, ept1=30, tick=0.1, zone=zone,
                              particle_factory=partial(self.drops_particle_factory,
                                                       group=self.group,
                                                       world=self.app.rect.scale_by(1.5)))
@@ -70,7 +69,7 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position', 'lifetime')
+        ecs.add_system(sw.emitter_system, 'emitter', 'position')
         ecs.add_system(sw.particle_system, 'particle', 'lifetime')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')

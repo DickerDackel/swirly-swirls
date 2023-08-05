@@ -80,7 +80,7 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position', 'lifetime')
+        ecs.add_system(sw.emitter_system, 'emitter', 'position')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
         ecs.add_system(sw.particle_system, 'particle', 'lifetime')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
@@ -89,7 +89,7 @@ class Demo(GameState):
     def launch_emitter(*, position, momentum, emitter):
         e = ecs.create_entity()
         ecs.add_component(e, 'emitter', emitter())
-        ecs.add_component(e, 'momentum', momentum)
+        ecs.add_component(e, 'momentum', Vector2(momentum))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'lifetime', Cooldown(10))
 

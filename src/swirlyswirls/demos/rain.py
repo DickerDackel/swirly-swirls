@@ -63,7 +63,7 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position', 'lifetime')
+        ecs.add_system(sw.emitter_system, 'emitter', 'position')
         ecs.add_system(sw.particle_system, 'particle', 'lifetime')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
