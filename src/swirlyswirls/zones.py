@@ -1,8 +1,8 @@
 import pygame
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, InitVar
-from random import random
+from dataclasses import dataclass, InitVar, field
+from random import random, triangular
 from pygame import Vector2
 
 # See Freya Holmer "The simple yet powerful math we don't talk about":
@@ -64,15 +64,23 @@ class ZonePoint(Zone):
 
     Parameters
     ----------
-    speed: float = 0
+    speed: Vector2 = Vector2(0, 0)
         An optional momentum to launch with.  This vector is randomly scaled
         between 0 and 1.
 
-    phi0, phi1: = 0, 360
-        Start and end angle of the circular zone.  If you only want to emit
-        from a half circle, set these to 0 and 180 or 90 and 270.
+    variance : float = 0..1
+        The length of the momentum vector will be scaled by a random between
+        `1 - variance` and `1 + variance`.
 
-    rnd_p, rnd_m:
+        A variance of 0 gives you an exact speed.
+        A variance of 0.5 gives you random speed between `0.5 * speed` and
+        `1.5 * speed`.
+
+    phi0, phi1: = 0, 360
+        Start and end angle of the momentum.  If you only want to emit from a
+        half circle, set these to 0 and 180 or 90 and 270.
+
+    rnd_m:
         Alternative random functions, e.g. if you want a gauss distribution
         instead of a normal random value.
 
@@ -85,9 +93,11 @@ class ZonePoint(Zone):
 
 
     """
-    speed: float = 0
+    speed: Vector2 = field(default_factory=lambda: Vector2())
+    variance: float = 0
     phi0: float = 0
     phi1: float = 360
+    rnd_m: callable = random
 
     def emit(self, t=None):
         """Emit a single point.
@@ -96,8 +106,8 @@ class ZonePoint(Zone):
         function always returns Vector2(0, 0).
 
         """
-        momentum = Vector2(self.speed * random(), 0)
-        momentum.rotate_ip(_lerp(self.phi0, self.phi1, random()))
+        momentum = Vector2(self.speed, 0) * (1 + self.rnd_m() * 2 * self.variance - self.variance)
+        momentum.rotate_ip(_lerp(self.phi0, self.phi1, self.rnd_m()))
 
         return Vector2(0, 0), momentum
 
