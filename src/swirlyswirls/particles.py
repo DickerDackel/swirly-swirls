@@ -130,6 +130,11 @@ def bubble_image_factory(size, alpha, base_color='lightblue', highlight_color='l
     return surface
 
 
+waterbubble_image_factory = partial(bubble_image_factory,
+                                   base_color='lightblue',
+                                   highlight_color='white')
+waterbubble_image_factory.__doc__ = 'See `bubble_image_factory`, lightblue/white.'
+
 firebubble_image_factory = partial(bubble_image_factory,
                                    base_color='orange',
                                    highlight_color='yellow')
@@ -177,6 +182,11 @@ def squabble_image_factory(size, alpha, base_color, highlight_color):
 
     return surface
 
+
+watersquabble_image_factory = partial(squabble_image_factory,
+                                     base_color='lightblue',
+                                     highlight_color='white')
+watersquabble_image_factory.__doc__ = 'See `squabble_image_factory`, lightblue/white.'
 
 firesquabble_image_factory = partial(squabble_image_factory,
                                      base_color='orange',
