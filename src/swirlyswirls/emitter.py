@@ -161,10 +161,12 @@ class Emitter:
         emit a big burst and then quickly tickle down for the remainder of the
         time.
 
-    duration: float | Cooldown
-        duration of the emits.  This is distinct from lifetime, since it might
-        be necessary to access the emitter after it has finished emitting (e.g.
-        for particles to kill their siblings).
+    duration: float | Cooldown = None
+        duration of the emits.  Default `None` is unlimited.
+
+        This is distinct from lifetime, since it might be necessary to access
+        the emitter after it has finished emitting (e.g. for particles to kill
+        their siblings).
 
     tick : float = 0.1
         The heartbeat of the emitter.
@@ -213,7 +215,11 @@ class Emitter:
     def __post_init__(self, duration, tick, total_emits):
         self.tick = Cooldown(tick, cold=True)
         self.remaining = total_emits if total_emits is not None else -1
-        self.duration = Cooldown(duration) if duration else None
+
+        if duration is None or isinstance(duration, Cooldown):
+            self.duration = duration
+        else:
+            self.duration = Cooldown(duration)
 
 
 def emitter_system(dt, eid, emitter, position):
@@ -227,20 +233,27 @@ def emitter_system(dt, eid, emitter, position):
     launched until `total_emits` is reached or `duration` has passed.
 
     For every entity, the `emiter.zone` function is called without parameters.
-    It is expected to return 1. a `position` Vector2, 2. a `momentum` Vector2.
+    It is expected to return
+
+        1. a `position` Vector2,
+        2. a `momentum` Vector2.
+
     The `position` vector is expected to be relative to the `zone` anchor, so
     the `position` of the emitter needs to be added to it.
 
+    This system doesn't require a momentum, but it checks if one is available.
+    The momentum of the particle is constructed from the momentum the zone
+    provided, and the momentum of the emitter, depending on
+    `emitter.inherit_momentum` (see `swirlyswirls.Emitter`).
+
     Both, `position` and `momentum` are passed into the `emitter.emit`
-    function, which is then expectedo to create a particle entity with all
+    function, which is then expecte to create a particle entity with all
     necessary components.
 
-    The `lifetime` has 2 functions.  1. is the actual lifetime of the emitter
-    object, 2. is the time interval to map `ept0` and `ept1` to.  At the
-    beginning of the emitter (t0), `ept0` entities per `tick` will be launched.
-    At the end of lifetime (t1), `ept1` entities.  During the time inbetween,
-    the number is interpolated from the remaining lifetime.
-
+    If `emitter.duration` (see `swirlyswirls.Emitter`) is non-zero and
+    positive, emits are lerped between ept0 and ept1 based on the length of
+    the duration.  If it is negative, duration is assumed to be infinite and
+    only ept0 is used.
 
     Parameters
     ----------
@@ -248,31 +261,37 @@ def emitter_system(dt, eid, emitter, position):
         Management data for the `emitter_system`.
     position: Vector2
         Position of the emitter
-    lifetime: Cooldown = 1
-        The lifetime of the emitter.  Also used to calculate the number of
-        emits per tick.  See above.
 
     Returns
     -------
     None
 
     """
+
     if emitter.tick.hot:
         return
 
-    if emitter.remaining == 0:
-        ecs.remove_entity(eid)
-
     emitter.tick.reset()
 
-    t = 0
-    if emitter.duration is None:
+    if emitter.remaining == 0:
+        return
+
+    # If we have a valid duration and it's cold, simply return
+    # If we have a valid duration that's hot, get t from it
+    # If duration is not valid, try to derive it from lifetime
+    # Finally, if all fails, default t to 0
+    if emitter.duration is not None:
+        if emitter.duration.cold:
+            return
+        else:
+            t = emitter.duration.normalized
+    else:
         if ecs.eid_has(eid, 'lifetime'):
             t = ecs.comp_of_eid(eid, 'lifetime').normalized
-    else:
-        t = emitter.duration.normalized
+        else:
+            t = 0
 
-    emits = int(_lerp(emitter.ept0, emitter.ept1, t))
+    emits = int(_lerp(emitter.ept0, emitter.ept1, emitter.ept_ease(t)))
 
     if emitter.remaining > 0:
         emits = min(emits, emitter.remaining)
@@ -284,7 +303,7 @@ def emitter_system(dt, eid, emitter, position):
         e_momentum = Vector2(0, 0)
 
     for i in range(emits):
-        z_position, z_momentum = emitter.zone.emit()
+        z_position, z_momentum = emitter.zone.emit(t)
 
         momentum = Vector2()
         if emitter.inherit_momentum & 1:
