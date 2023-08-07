@@ -237,6 +237,89 @@ class ZoneCircle(Zone):
 
 
 @dataclass(kw_only=True)
+class ZoneRing(Zone):
+    """A dynamically changing ring zone.
+
+    This is a ring, where inner and outer radius can change over time. Setting
+    the min radius to 0 can also make this a disk that grows or shrinks.
+
+    Parameters
+    ----------
+    r_min_t0, r_max_t0,
+    r_min_t1, r_max_t1: float
+        minimum and maximum radius at beginning and end of lifetime
+
+    r_ease: callable = lambda x: x
+        Easing function for t of radius
+
+    phi_min_t0, phi_max_t0,
+    phi_min_t1, phi_max_t1: float
+        Start and end angle of the ring zone.  If you only want to emit
+        from a half ring, set these to 0 and 180 or 90 and 270.
+
+    phi_ease: callable = lambda x: x
+        Easing function for t of angle
+
+    rnd_p, rnd_m:
+        Alternative random functions, e.g. if you want a gauss distribution
+        instead of a normal random value.
+
+        Note, that this functions are expected to be parameterless.  Provide a
+        lambda if you need them to be configurable.
+
+
+    Attributes
+    ----------
+    See Parameters.
+
+    """
+    r_min_t0: float
+    r_max_t0: float
+    r_min_t1: float = None
+    r_max_t1: float = None
+    r_ease: callable = lambda x: x
+
+    phi_min_t0: float = 0
+    phi_max_t0: float = 360
+    phi_min_t1: float = 0
+    phi_max_t1: float = 360
+    r_ease: callable = lambda x: x
+
+    rnd_p: callable = random
+    rnd_m: callable = random
+
+    def emit(self, t=None):
+        """Emit a coordinate/momentum tuple
+
+        Parameters
+        ----------
+        t : any
+            t is ignored by this zone.
+
+        Returns
+        -------
+        position : Vector2
+            A random point, relative to the circle's origin, within the radius
+            defined by r0 and r1.
+
+        momentum: Vector2
+            With this zone, always identical to `position`.
+
+        """
+        r_min = _lerp(self.r_min_t0, self.r_min_t1, t)
+        r_max = _lerp(self.r_max_t0, self.r_max_t1, t)
+        r = (r_max - r_min) * self.rnd_p() + r_min
+
+        phi_min = _lerp(self.phi_min_t0, self.phi_min_t1, t)
+        phi_max = _lerp(self.phi_max_t0, self.phi_max_t1, t)
+        phi = (phi_max - phi_min) * self.rnd_p() + phi_min
+
+        v = Vector2(r, 0).rotate(phi)
+
+        return v, v
+
+
+@dataclass(kw_only=True)
 class ZoneRect:
     """A rectangular zone.
 
