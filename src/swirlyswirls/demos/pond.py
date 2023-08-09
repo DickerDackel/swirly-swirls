@@ -2,14 +2,16 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
+from pygamehelpers.easing import *  # noqa: 405
 
 
 class Demo(GameState):
@@ -17,7 +19,6 @@ class Demo(GameState):
         super().__init__(app, persist, parent=parent)
 
         self.title = 'Pond Demo'
-        self.cache = {}
         self.group = sw.ReversedGroup()
         self.momentum = False
 
@@ -30,7 +31,7 @@ class Demo(GameState):
                                 ept0=3, ept1=3, tick=0.05,
                                 zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=128),
                                 particle_factory=partial(self.pond_particle_factory,
-                                                 group=self.group, cache=self.cache),
+                                                 group=self.group),
                                 inherit_momentum=3),
                             )
 
@@ -58,8 +59,7 @@ class Demo(GameState):
         self.group.update(dt)
 
         sprites = len(self.group.sprites())
-        c = len(list(self.cache.keys()))
-        pygame.display.set_caption(f'{self.title} - time={pygame.time.get_ticks()/1000:.2f}  fps={self.app.clock.get_fps():.2f}  {sprites=}  {c=}')
+        pygame.display.set_caption(f'{self.title} - time={pygame.time.get_ticks()/1000:.2f}  fps={self.app.clock.get_fps():.2f}  {sprites=}')
 
     def draw(self, screen):
         """Draw current frame to surface screen."""
@@ -74,8 +74,8 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
     @staticmethod
@@ -86,19 +86,20 @@ class Demo(GameState):
         ecs.add_component(e, 'lifetime', Cooldown(5).pause())
 
     @staticmethod
-    def pond_particle_factory(t, position, momentum, group, cache):
-        e = ecs.create_entity()
-        image_factory = partial(
-            swirlyswirls.particles.bubble_image_factory,
-            base_color='aqua', highlight_color='white')
+    def pond_particle_factory(t, position, momentum, group):
+        def image_factory(rotate, scale, alpha):
+            size = 10 * scale
+            return swirlyswirls.particles.waterbubble_image_factory(size, alpha)
 
-        p = sw.Particle(size_min=5, size_max=10,
-                        # alpha_min=0, alpha_max=255,
-                        alpha_min=255, alpha_max=0,
-                        image_factory=image_factory)
+        rsai = ecsc.RSAImage(None, image_factory=image_factory)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1 / 2, vt1=1, interval=1),
+                          alpha=LerpThing(vt0=255, vt1=0, ease=in_quint, interval=1))  # noqa: 405
+
+        e = ecs.create_entity()
+        ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(1))
-        ecs.add_component(e, 'cache', cache)

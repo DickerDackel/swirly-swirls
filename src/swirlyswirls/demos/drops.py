@@ -2,13 +2,14 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 from random import random
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import *  # noqa
@@ -69,10 +70,11 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
+        ecs.add_system(ecsc.deadzone_system, 'deadzone', 'position')
 
     @staticmethod
     def launch_emitter(position, emitter):
@@ -84,17 +86,23 @@ class Demo(GameState):
     @staticmethod
     def drops_particle_factory(t, position, momentum, group, world):
         e = ecs.create_entity()
-        bubble = partial(
-            swirlyswirls.particles.bubble_image_factory,
-            base_color='lightblue',
-            highlight_color='white',
-        )
 
-        p = sw.Particle(size_min=6, size_max=6,
-                        alpha_min=128, alpha_max=128,
-                        image_factory=bubble)
+        def bubble_wrapper(rotate, scale, alpha):
+            size = 6 / scale
+            return swirlyswirls.particles.waterbubble_image_factory(size, alpha)
+
+        rsai = ecsc.RSAImage(None, image_factory=bubble_wrapper)
+
+        # p = sw.Particle(size_min=6, size_max=6,
+        #                 alpha_min=128, alpha_max=128,
+        #                 image_factory=bubble)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1, vt1=1, interval=10),
+                          alpha=LerpThing(vt0=128, vt1=128, interval=10))
+
+        ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum * (random() + 0.5))
         ecs.add_component(e, 'lifetime', Cooldown(10))

@@ -2,12 +2,13 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import out_quint
@@ -109,8 +110,8 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
     @staticmethod
@@ -123,15 +124,20 @@ class Demo(GameState):
     @staticmethod
     def explosion_particle_factory(t, position, momentum, group, cache, max_size):
         e = ecs.create_entity()
-        squabble = partial(swirlyswirls.particles.squabble_image_factory,
-                           base_color='orange', highlight_color='yellow')
 
-        p = sw.Particle(size_min=4, size_max=max_size, size_ease=out_quint,
-                        alpha_min=255, alpha_max=0, alpha_ease=out_quint,
-                        image_factory=squabble)
+        def image_factory(rotate, scale, alpha):
+            size = max_size * scale
+            return swirlyswirls.particles.firesquabble_image_factory(size, alpha)
+
+        rsai = ecsc.RSAImage(None, image_factory=image_factory)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1 / 4, vt1=1, ease=out_quint, interval=0.75),
+                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quint, interval=0.75))
+
+        ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
         ecs.add_component(e, 'lifetime', Cooldown(0.75))
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum * 3)
         ecs.add_component(e, 'cache', cache)

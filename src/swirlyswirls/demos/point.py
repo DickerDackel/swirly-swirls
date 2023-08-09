@@ -2,13 +2,14 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 from random import triangular
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import *  # noqa
@@ -25,10 +26,6 @@ class Demo(GameState):
 
         self.ecs_register_systems()
 
-        # self.launch_particle(position=self.app.rect.center,
-        #                      momentum=Vector2(-100, -100),
-        #                      group=self.group,
-        #                      cache=self.cache)
         self.emitter = partial(sw.Emitter,
                                ept0=5, ept1=5, tick=0.1,
                                zone=swirlyswirls.zones.ZonePoint(speed=100, phi0=150, phi1=210),
@@ -80,9 +77,9 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
     @staticmethod
@@ -95,21 +92,20 @@ class Demo(GameState):
 
     @staticmethod
     def launch_particle(*, t=None, position, momentum, group, cache):
-        bubble = partial(swirlyswirls.particles.bubble_image_factory,
-                         base_color='orange', highlight_color='yellow')
 
-        p = sw.Particle(size_min=2, size_max=16, size_ease=out_quint,  # noqa
-                        alpha_min=255, alpha_max=0, alpha_ease=out_quint,  # noqa
-                        image_factory=bubble)
-        # p = sw.Particle(size_min=2, size_max=16, size_ease=in_quint,  # noqa
-        #                 alpha_min=255, alpha_max=0, alpha_ease=out_quint,  # noqa
-        #                 image_factory=bubble)
+        def image_factory(rotate, scale, alpha):
+            size = 16 * scale
+            return swirlyswirls.particles.firebubble_image_factory(size, alpha)
+
+        rsai = ecsc.RSAImage(None, image_factory=image_factory)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1 / 8, vt1=1, ease=out_quint, interval=1), # noqa: 405
+                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quint, interval=1)) # noqa: 405
 
         e = ecs.create_entity()
+        ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
         ecs.add_component(e, 'lifetime', Cooldown(1))
-        ecs.add_component(e, 'bubble', bubble)
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
-        ecs.add_component(e, 'cache', cache)

@@ -2,12 +2,13 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import *  # noqa
@@ -63,8 +64,8 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
     @staticmethod
@@ -76,15 +77,21 @@ class Demo(GameState):
 
     @staticmethod
     def pond_particle_factory(t, position, momentum, group):
-        e = ecs.create_entity()
-        drop = partial(Demo.draw_splash_bubble,
-                       base_color='aqua', highlight_color='white')
+        def image_factory(rotate, scale, alpha):
+            size = 128 * scale
+            return Demo.draw_splash_bubble(size, alpha,
+                                           base_color='aqua',
+                                           highlight_color='white')
 
-        p = sw.Particle(size_min=10, size_max=128, size_ease=out_cubic,  # noqa
-                        alpha_min=128, alpha_max=0, alpha_ease=out_quad,  # noqa
-                        image_factory=drop)
+        rsai = ecsc.RSAImage(None, image_factory=image_factory)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1 / 10, vt1=1, ease=out_cubic, interval=3), # noqa: 405
+                          alpha=LerpThing(vt0=128, vt1=0, ease=out_quad, interval=3))  # noqa: 405
+
+        e = ecs.create_entity()
+        ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
         ecs.add_component(e, 'lifetime', Cooldown(3))

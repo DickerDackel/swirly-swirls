@@ -2,12 +2,13 @@ import pygame
 import tinyecs as ecs
 import tinyecs.components as ecsc
 import swirlyswirls as sw
+import swirlyswirls.compsys as swcs
 import swirlyswirls.particles
 import swirlyswirls.zones
 
 from functools import partial
 
-from cooldown import Cooldown
+from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
 from pygamehelpers.easing import in_quad, out_quad
@@ -25,7 +26,7 @@ class Demo(GameState):
         self.ecs_register_systems()
 
         self.emitter = partial(
-            sw.Emitter,
+            swcs.Emitter,
             ept0=100, ept1=10, tick=0.01,
             inherit_momentum=2,
             zone=swirlyswirls.zones.ZoneBeam(v=(self.app.rect.width, 100), width=32),
@@ -75,8 +76,8 @@ class Demo(GameState):
     @staticmethod
     def ecs_register_systems():
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
-        ecs.add_system(sw.emitter_system, 'emitter', 'position')
-        ecs.add_system(sw.particle_system, 'particle', 'lifetime')
+        ecs.add_system(swcs.emitter_system, 'emitter', 'position')
+        ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
@@ -90,17 +91,19 @@ class Demo(GameState):
     @staticmethod
     def beam_particle_factory(t, position, momentum, group, cache):
         e = ecs.create_entity()
-        squabble = partial(
-            swirlyswirls.particles.squabble_image_factory,
-            base_color='lightblue',
-            highlight_color='white',
-        )
-        p = sw.Particle(size_min=16, size_max=2, size_ease=in_quad,
-                        alpha_min=255, alpha_max=0, alpha_ease=out_quad,
-                        image_factory=squabble)
-        ecs.add_component(e, 'particle', p)
+
+        def squabble_wrapper(rotate, scale, alpha):
+            size = 16 * scale
+            return swirlyswirls.particles.watersquabble_image_factory(size, alpha)
+
+        rsai = ecsc.RSAImage(None, image_factory=squabble_wrapper)
+
+        p = swcs.Particle(scale=LerpThing(vt0=1, vt1=1 / 8, ease=in_quad, interval=1),
+                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quad, interval=1))
+
+        ecs.add_component(e, 'rsai', rsai)
+        ecs.add_component(e, 'particle', p)6 / 
         ecs.add_component(e, 'lifetime', Cooldown(1))
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(p, group))
+        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'momentum', momentum)
-        ecs.add_component(e, 'cache', cache)
