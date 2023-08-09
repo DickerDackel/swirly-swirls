@@ -254,8 +254,6 @@ def container_system(dt, eid, container, position, momentum, sprite):
     momentum
         The momentum of the sprite.  On wall hit, it is inversed on the
         collision axis.
-    angular_momentun : float
-        The angular momentum of the sprite.  Reversed on wall hits.
     sprite : tinyecs.components.ESprite
         The visualization of the entity, a.k.a. the sprite to bounce around.
 
@@ -266,18 +264,14 @@ def container_system(dt, eid, container, position, momentum, sprite):
     """
     if sprite.rect.left < container.left and momentum.x < 0:
         momentum.x = -momentum.x
-        ecs.add_component(eid, 'angular-momentum', -angular_momentum)
         position.x += -2 * sprite.rect.left
     elif sprite.rect.right > container.right and momentum.x > 0:
         momentum.x = -momentum.x
-        ecs.add_component(eid, 'angular-momentum', -angular_momentum)
         position.x += 2 * (container.width - sprite.rect.right)
 
     if sprite.rect.top < container.top and momentum.x < 0:
         momentum.y = -momentum.y
-        ecs.add_component(eid, 'angular-momentum', -angular_momentum)
         position.y += -2 * sprite.rect.top
     elif sprite.rect.bottom > container.bottom and momentum.y > 0:
         momentum.y = -momentum.y
-        ecs.add_component(eid, 'angular-momentum', -angular_momentum)
         position.y += 2 * (container.height - sprite.rect.bottom)
