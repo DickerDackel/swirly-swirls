@@ -1,12 +1,10 @@
 import pygame
 
-from dataclasses import dataclass
-from functools import lru_cache, partial
+from functools import partial
+from random import random
+from pygame import Vector2
 
-_lerp     = lambda a, b, t: (1 - t) * a + b * t
 
-
-@lru_cache(maxsize=1024)
 def default_image_factory(size, alpha, width=1, color='white'):
     """An image factory for squares.
 
@@ -36,7 +34,7 @@ def default_image_factory(size, alpha, width=1, color='white'):
 
     Returns
     -------
-    None
+    pygame.surface.Surface
 
     """
     surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
@@ -47,7 +45,6 @@ def default_image_factory(size, alpha, width=1, color='white'):
     return surface
 
 
-@lru_cache(maxsize=1024)
 def circle_image_factory(size, alpha, color='white', width=1):
     """An image factory for circles.
 
@@ -77,7 +74,7 @@ def circle_image_factory(size, alpha, color='white', width=1):
 
     Returns
     -------
-    None
+    pygame.surface.Surface
 
     """
     surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
@@ -93,7 +90,6 @@ def circle_image_factory(size, alpha, color='white', width=1):
 disk_image_factory = partial(circle_image_factory, filled=True)
 
 
-@lru_cache(maxsize=1024)
 def bubble_image_factory(size, alpha, base_color='lightblue', highlight_color='lightcyan'):
     """Image factory for bubbles.
 
@@ -115,7 +111,7 @@ def bubble_image_factory(size, alpha, base_color='lightblue', highlight_color='l
 
     Returns
     -------
-    None
+    pygame.surface.Surface
 
     """
     surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
@@ -146,7 +142,6 @@ poisonbubble_image_factory = partial(bubble_image_factory,
 poisonbubble_image_factory.__doc__ = 'See `bubble_image_factory`, palegreen3/palegreen1.'
 
 
-@lru_cache(maxsize=1024)
 def squabble_image_factory(size, alpha, base_color, highlight_color):
     """Image factory for square bubbles.
 
@@ -168,7 +163,7 @@ def squabble_image_factory(size, alpha, base_color, highlight_color):
 
     Returns
     -------
-    None
+    pygame.surface.Surface
 
     """
     surface = pygame.Surface((size, size), flags=pygame.SRCALPHA)
