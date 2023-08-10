@@ -99,6 +99,7 @@ def particle_entity_factory(eid=None, *, particle, position, momentum,
 
     if eid is None:
         eid = ecs.create_entity()
+
     ecs.add_component(eid, 'particle', particle)
     ecs.add_component(eid, 'lifetime', Cooldown(lifetime))
     ecs.add_component(eid, 'sprite', sprite)
