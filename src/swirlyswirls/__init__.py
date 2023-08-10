@@ -61,9 +61,9 @@ The following components are involved:
 
         See `swirlyswirls.Emitter` for Details.
 
-        Over its emit duration, it creates between ept0 (Emits Per Tick) and
-        ept1 particles per tick.  Besides the time constraint, also the total
-        amount of emits can be limited.
+        Over its emit duration, it creates between `ept.vt0` (Emits Per Tick)
+        and `ept.vt1` particles per tick (see pgcooldown.LerpThing).  Besides
+        the time constraint, also the total amount of emits can be limited.
 
         It receives the zone and particle factory as well as the parameters to
         control the emits over time.
@@ -111,7 +111,8 @@ The following components are involved:
 
         Create the emitter configuration and the entity:
 
-            emitter = swirlyswirls.Emitter(ept0=3, ept1=3, tick=0.1, zone=zone,
+            emitter = swirlyswirls.Emitter(ept=LerpThing(3, 3, 1),
+                                           zone=zone,
                                            particle_factory=particle_factory)
 
             e = ecs.create_entity()

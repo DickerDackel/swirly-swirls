@@ -29,22 +29,22 @@ class Demo(GameState):
         self.ecs_register_systems()
 
         self.emitters = [
-            sw.Emitter(
-                ept0=2, ept1=5, tick=0.1,
+            partial(
+                sw.Emitter,
                 zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=16),
                 particle_factory=partial(self.explosion_particle_factory,
                                          group=self.group, cache=self.cache,
                                          max_size=16)
             ),
-            sw.Emitter(
-                ept0=2, ept1=5, tick=0.1,
+            partial(
+                sw.Emitter,
                 zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=32),
                 particle_factory=partial(self.explosion_particle_factory,
                                          group=self.group, cache=self.cache,
                                          max_size=32)
             ),
-            sw.Emitter(
-                ept0=2, ept1=5, tick=0.1,
+            partial(
+                sw.Emitter,
                 zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=64),
                 particle_factory=partial(self.explosion_particle_factory,
                                          group=self.group, cache=self.cache,
@@ -117,7 +117,7 @@ class Demo(GameState):
     @staticmethod
     def launch_emitter(pos, emitter):
         e = ecs.create_entity()
-        ecs.add_component(e, 'emitter', emitter)
+        ecs.add_component(e, 'emitter', emitter(ept=LerpThing(2, 5, 1)))
         ecs.add_component(e, 'position', Vector2(pos))
         ecs.add_component(e, 'lifetime', Cooldown(1))
 
@@ -131,8 +131,8 @@ class Demo(GameState):
 
         rsai = ecsc.RSAImage(None, image_factory=image_factory)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1 / 4, vt1=1, ease=out_quint, interval=0.75),
-                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quint, interval=0.75))
+        p = swcs.Particle(scale=LerpThing(1 / 4, 1, 0.75, ease=out_quint),
+                          alpha=LerpThing(255, 0, 0.75, ease=out_quint))
 
         ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)

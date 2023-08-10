@@ -26,14 +26,7 @@ class Demo(GameState):
 
         self.ecs_register_systems()
 
-        self.launch_emitter(self.app.rect.center,
-                            sw.Emitter(
-                                ept0=3, ept1=3, tick=0.05,
-                                zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=128),
-                                particle_factory=partial(self.pond_particle_factory,
-                                                 group=self.group),
-                                inherit_momentum=3),
-                            )
+        self.launch_emitter()
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -71,30 +64,32 @@ class Demo(GameState):
 
         pygame.display.flip()
 
-    @staticmethod
-    def ecs_register_systems():
+    def ecs_register_systems(self):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(swcs.emitter_system, 'emitter', 'position')
         ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
-    @staticmethod
-    def launch_emitter(position, emitter):
+    def launch_emitter(self):
+        emitter = sw.Emitter(ept=LerpThing(3, 3, 0),
+                             zone=swirlyswirls.zones.ZoneCircle(r0=0, r1=128),
+                             particle_factory=partial(self.pond_particle_factory,
+                                                      group=self.group),
+                             inherit_momentum=3)
         e = ecs.create_entity('emitter')
         ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'position', Vector2(position))
-        ecs.add_component(e, 'lifetime', Cooldown(5).pause())
+        ecs.add_component(e, 'position', Vector2(self.app.rect.center))
+        ecs.add_component(e, 'lifetime', Cooldown(1).pause())
 
-    @staticmethod
-    def pond_particle_factory(t, position, momentum, group):
+    def pond_particle_factory(self, t, position, momentum, group):
         def image_factory(rotate, scale, alpha):
             size = 10 * scale
             return swirlyswirls.particles.waterbubble_image_factory(size, alpha)
 
         rsai = ecsc.RSAImage(None, image_factory=image_factory)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1 / 2, vt1=1, interval=1),
-                          alpha=LerpThing(vt0=255, vt1=0, ease=in_quint, interval=1))  # noqa: 405
+        p = swcs.Particle(scale=LerpThing(1 / 2, 1, 1),
+                          alpha=LerpThing(255, 0, 1, ease=in_quint))  # noqa: 405
 
         e = ecs.create_entity()
         ecs.add_component(e, 'rsai', rsai)

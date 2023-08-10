@@ -30,7 +30,7 @@ class Demo(GameState):
             v=(self.app.rect.width + 200, 0),
             speed=(100, 700))
 
-        emitter = sw.Emitter(ept0=30, ept1=30, tick=0.1, zone=zone,
+        emitter = sw.Emitter(ept=LerpThing(30, 30, 0), zone=zone,
                              particle_factory=partial(self.drops_particle_factory,
                                                       group=self.group,
                                                       world=self.app.rect.scale_by(1.5)))
@@ -97,8 +97,8 @@ class Demo(GameState):
         #                 alpha_min=128, alpha_max=128,
         #                 image_factory=bubble)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1, vt1=1, interval=10),
-                          alpha=LerpThing(vt0=128, vt1=128, interval=10))
+        p = swcs.Particle(scale=LerpThing(1, 1, 10),
+                          alpha=LerpThing(128, 128, 10))
 
         ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)

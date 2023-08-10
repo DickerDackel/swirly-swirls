@@ -17,23 +17,29 @@ class Emitter:
 
     Attributes
     ----------
-    ept0, ept1 : int = 1
-        ept stands for Entities Per Tick and specifies how much entities are to
-        be launched on each tick.
+    ept: pgcooldown.LerpThing
+        `ept` is short for "Emits per Tick", and it describes how many entities
+        to launch at every heartbeat, and over what time.
 
-        See `emitter_system` for details.
+        The LerpThing gets the following parameters:
 
-    ept_ease: callable = lambda x: x
-        An optional easing curve over the number of emits.  E.g. if you want to
-        emit a big burst and then quickly tickle down for the remainder of the
-        time.
+            duration: [Cooldown | float] = 0
+                The duration over that the emitter emits.
 
-    duration: float | Cooldown = None
-        duration of the emits.  Default `None` is unlimited.
+                This is distinct from lifetime, since it might be necessary to
+                access the emitter after it has finished emitting (e.g. for
+                particles to kill their siblings).
 
-        This is distinct from lifetime, since it might be necessary to access
-        the emitter after it has finished emitting (e.g. for particles to kill
-        their siblings).
+            vt0:
+                Emits per tick at the start of the emitter.
+            vt1:
+                Emits per tick at the end of `duration`
+
+            ease: callable = lambda x: x
+                An optional ease function put over the `t` of the lerp.
+
+                E.g. if you want to emit a big burst and then quickly tickle
+                down for the remainder of the time.
 
     tick : float = 0.1
         The heartbeat of the emitter.
@@ -69,24 +75,16 @@ class Emitter:
             3: emitter + zone (default)
 
     """
-    ept0: int = 1
-    ept1: int = 1
-    ept_ease: callable = lambda x: x
-    duration: InitVar[float | Cooldown] = None
+    ept: LerpThing
     tick: InitVar[float] = 0.1
     total_emits: InitVar[int] = None
     zone: swirlyswirls.zones.Zone
     particle_factory: callable
     inherit_momentum: int = 3
 
-    def __post_init__(self, duration, tick, total_emits):
+    def __post_init__(self, tick, total_emits):
         self.tick = Cooldown(tick, cold=True)
         self.remaining = total_emits if total_emits is not None else -1
-
-        if duration is None or isinstance(duration, Cooldown):
-            self.duration = duration
-        else:
-            self.duration = Cooldown(duration)
 
 
 def emitter_system(dt, eid, emitter, position):
@@ -96,8 +94,8 @@ def emitter_system(dt, eid, emitter, position):
 
     It's center configuration is the emitter object:
 
-    On each `tick`, between `ept0` (entities per tick) and `ept1` entities are
-    launched until `total_emits` is reached or `duration` has passed.
+    On each `tick`, a number of entities are launched until `total_emits` is
+    reached or `duration` has passed.
 
     For every entity, the `emiter.zone` function is called without parameters.
     It is expected to return
@@ -118,9 +116,10 @@ def emitter_system(dt, eid, emitter, position):
     necessary components.
 
     If `emitter.duration` (see `swirlyswirls.Emitter`) is non-zero and
-    positive, emits are lerped between ept0 and ept1 based on the length of
-    the duration.  If it is negative, duration is assumed to be infinite and
-    only ept0 is used.
+    positive, emits are lerped between `vt0` and `vt1` (see
+    `pgcooldown.LerpThing`) based on the length of the `duration`.  If
+    `duration` is zero, the working time for the emitter is infinite and only
+    `vt0` is used.
 
     Parameters
     ----------
@@ -143,22 +142,23 @@ def emitter_system(dt, eid, emitter, position):
     if emitter.remaining == 0:
         return
 
+    ept = emitter.ept
     # If we have a valid duration and it's cold, simply return
     # If we have a valid duration that's hot, get t from it
     # If duration is not valid, try to derive it from lifetime
     # Finally, if all fails, default t to 0
-    if emitter.duration is not None:
-        if emitter.duration.cold:
+    if ept.duration.duration:
+        if ept.duration.cold:
             return
         else:
-            t = emitter.duration.normalized
+            t = ept.duration.normalized
     else:
         if ecs.eid_has(eid, 'lifetime'):
             t = ecs.comp_of_eid(eid, 'lifetime').normalized
         else:
             t = 0
 
-    emits = int(_lerp(emitter.ept0, emitter.ept1, emitter.ept_ease(t)))
+    emits = int(ept())
 
     if emitter.remaining > 0:
         emits = min(emits, emitter.remaining)

@@ -28,7 +28,7 @@ class Demo(GameState):
         self.particle_factory = partial(self.bullet_particle_factory,
                                         group=self.group)
         self.zone_factory = partial(swirlyswirls.zones.ZoneCircle, r0=0)
-        self.emitter = partial(sw.Emitter, ept0=1, ept1=1, tick=0.1, inherit_momentum=3)
+        self.emitter = partial(sw.Emitter, ept=LerpThing(1, 1, 5), inherit_momentum=3)
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -112,8 +112,8 @@ class Demo(GameState):
 
         rsai = ecsc.RSAImage(None, image_factory=squabble_wrapper)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1 / 8, vt1=1, ease=lambda x: x, interval=0.75),
-                          alpha=LerpThing(vt0=255, vt1=0, ease=lambda x: x, interval=0.75))
+        p = swcs.Particle(scale=LerpThing(1 / 8, 1, 0.75),
+                          alpha=LerpThing(255, 0, 0.75))
 
         ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)

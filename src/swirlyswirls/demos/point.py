@@ -20,20 +20,10 @@ class Demo(GameState):
         super().__init__(app, persist, parent=parent)
 
         self.title = 'Bubble Explosions'
-        self.cache = {}
         self.group = sw.ReversedGroup()
         self.cooldown = Cooldown(1, cold=True)
 
         self.ecs_register_systems()
-
-        self.emitter = partial(sw.Emitter,
-                               ept0=5, ept1=5, tick=0.1,
-                               zone=swirlyswirls.zones.ZonePoint(speed=100, phi0=150, phi1=210),
-                               particle_factory=partial(
-                                   self.launch_particle,
-                                   group=self.group,
-                                   cache=self.cache),
-                               )
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -49,17 +39,14 @@ class Demo(GameState):
 
         if self.cooldown.cold:
             self.cooldown.reset()
-            position = Vector2(-50, self.app.rect.centery)
-            momentum = Vector2(150, 0)
-            self.launch_emitter(position=position, momentum=momentum, emitter=self.emitter)
+            self.launch_emitter()
 
         ecs.run_all_systems(dt)
 
         self.group.update(dt)
 
         sprites = len(self.group.sprites())
-        c = len(list(self.cache.keys()))
-        pygame.display.set_caption(f'{self.title} - time={pygame.time.get_ticks()/1000:.2f}  fps={self.app.clock.get_fps():.2f}  {sprites=}  {c=}')
+        pygame.display.set_caption(f'{self.title} - time={pygame.time.get_ticks()/1000:.2f}  fps={self.app.clock.get_fps():.2f}  {sprites=}')
 
     def draw(self, screen):
         """Draw current frame to surface screen."""
@@ -74,24 +61,28 @@ class Demo(GameState):
 
         pygame.display.flip()
 
-    @staticmethod
-    def ecs_register_systems():
+    def ecs_register_systems(self):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(swcs.emitter_system, 'emitter', 'position')
         ecs.add_system(ecsc.momentum_system, 'momentum', 'position')
         ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
-    @staticmethod
-    def launch_emitter(*, position, momentum, emitter):
+    def launch_emitter(self):
+        position = Vector2(-50, self.app.rect.centery)
+        momentum = Vector2(150, 0)
+        emitter = sw.Emitter(ept=LerpThing(5, 5, 10),
+                             zone=swirlyswirls.zones.ZonePoint(speed=100, phi0=150, phi1=210),
+                             particle_factory=partial(
+                                 self.launch_particle,
+                                 group=self.group))
         e = ecs.create_entity()
-        ecs.add_component(e, 'emitter', emitter())
+        ecs.add_component(e, 'emitter', emitter)
         ecs.add_component(e, 'momentum', Vector2(momentum))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'lifetime', Cooldown(10))
 
-    @staticmethod
-    def launch_particle(*, t=None, position, momentum, group, cache):
+    def launch_particle(self, *, t=None, position, momentum, group):
 
         def image_factory(rotate, scale, alpha):
             size = 16 * scale
@@ -99,8 +90,8 @@ class Demo(GameState):
 
         rsai = ecsc.RSAImage(None, image_factory=image_factory)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1 / 8, vt1=1, ease=out_quint, interval=1), # noqa: 405
-                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quint, interval=1)) # noqa: 405
+        p = swcs.Particle(scale=LerpThing(1 / 8, 1, 1, ease=out_quint), # noqa: 405
+                          alpha=LerpThing(255, 0, 1, ease=out_quint)) # noqa: 405
 
         e = ecs.create_entity()
         ecs.add_component(e, 'rsai', rsai)

@@ -14,6 +14,42 @@ from pygamehelpers.framework import GameState
 from pygamehelpers.easing import *  # noqa
 
 
+def draw_splash_bubble(size, alpha, highlight_color, base_color):
+    surface = pygame.Surface((size, size))
+
+    r = size // 2
+    pygame.draw.circle(surface, highlight_color, (r, r), r)
+    pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
+
+    for i in range(3):
+        pygame.draw.circle(surface, highlight_color, (r, r), (i * r / 3), width=2)
+
+    surface.set_alpha(alpha)
+
+    return surface
+
+
+def pond_particle_factory(t, position, momentum, group):
+    def image_factory(rotate, scale, alpha):
+        size = 128 * scale
+        return draw_splash_bubble(size, alpha,
+                                  base_color='aqua',
+                                  highlight_color='white')
+
+    rsai = ecsc.RSAImage(None, image_factory=image_factory)
+
+    p = swcs.Particle(scale=LerpThing(1 / 10, 1, 3, ease=out_cubic), # noqa: 405
+                      alpha=LerpThing(128, 0, 3, ease=out_quad))  # noqa: 405
+
+    e = ecs.create_entity()
+    ecs.add_component(e, 'rsai', rsai)
+    ecs.add_component(e, 'particle', p)
+    ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
+    ecs.add_component(e, 'position', Vector2(position))
+    ecs.add_component(e, 'momentum', momentum)
+    ecs.add_component(e, 'lifetime', Cooldown(3))
+
+
 class Demo(GameState):
     def __init__(self, app, persist, parent=None):
         super().__init__(app, persist, parent=parent)
@@ -23,16 +59,7 @@ class Demo(GameState):
         self.momentum = False
 
         self.ecs_register_systems()
-
-        r = self.app.rect.copy()
-        r.center = (0, 0)
-        self.launch_emitter(self.app.rect.center,
-                            sw.Emitter(
-                                ept0=3, ept1=1, tick=0.5,
-                                zone=swirlyswirls.zones.ZoneRect(r=r),
-                                particle_factory=partial(self.pond_particle_factory,
-                                                         group=self.group))
-                            )
+        self.launch_emitter()
 
     def reset(self, persist=None):
         """Reset settings when re-running."""
@@ -61,52 +88,21 @@ class Demo(GameState):
 
         pygame.display.flip()
 
-    @staticmethod
-    def ecs_register_systems():
+    def ecs_register_systems(self):
         ecs.add_system(ecsc.lifetime_system, 'lifetime')
         ecs.add_system(swcs.emitter_system, 'emitter', 'position')
         ecs.add_system(swcs.particle_rsai_system, 'particle', 'rsai')
         ecs.add_system(ecsc.sprite_system, 'sprite', 'position')
 
-    @staticmethod
-    def launch_emitter(position, emitter):
+    def launch_emitter(self):
+        r = self.app.rect.copy()
+        r.center = (0, 0)
+        emitter = sw.Emitter(
+            ept=LerpThing(3, 1, 0),
+            zone=swirlyswirls.zones.ZoneRect(r=r),
+            particle_factory=partial(pond_particle_factory,
+                                     group=self.group))
+
         e = ecs.create_entity('emitter')
         ecs.add_component(e, 'emitter', emitter)
-        ecs.add_component(e, 'position', Vector2(position))
-        ecs.add_component(e, 'lifetime', Cooldown(5).pause())
-
-    @staticmethod
-    def pond_particle_factory(t, position, momentum, group):
-        def image_factory(rotate, scale, alpha):
-            size = 128 * scale
-            return Demo.draw_splash_bubble(size, alpha,
-                                           base_color='aqua',
-                                           highlight_color='white')
-
-        rsai = ecsc.RSAImage(None, image_factory=image_factory)
-
-        p = swcs.Particle(scale=LerpThing(vt0=1 / 10, vt1=1, ease=out_cubic, interval=3), # noqa: 405
-                          alpha=LerpThing(vt0=128, vt1=0, ease=out_quad, interval=3))  # noqa: 405
-
-        e = ecs.create_entity()
-        ecs.add_component(e, 'rsai', rsai)
-        ecs.add_component(e, 'particle', p)
-        ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
-        ecs.add_component(e, 'position', Vector2(position))
-        ecs.add_component(e, 'momentum', momentum)
-        ecs.add_component(e, 'lifetime', Cooldown(3))
-
-    @staticmethod
-    def draw_splash_bubble(size, alpha, highlight_color, base_color):
-        surface = pygame.Surface((size, size))
-
-        r = size // 2
-        pygame.draw.circle(surface, highlight_color, (r, r), r)
-        pygame.draw.circle(surface, base_color, (r + 2, r), r - 2)
-
-        for i in range(3):
-            pygame.draw.circle(surface, highlight_color, (r, r), (i * r / 3), width=2)
-
-        surface.set_alpha(alpha)
-
-        return surface
+        ecs.add_component(e, 'position', Vector2(self.app.rect.center))

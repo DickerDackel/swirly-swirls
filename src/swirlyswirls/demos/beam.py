@@ -27,7 +27,6 @@ class Demo(GameState):
 
         self.emitter = partial(
             swcs.Emitter,
-            ept0=100, ept1=10, tick=0.01,
             inherit_momentum=2,
             zone=swirlyswirls.zones.ZoneBeam(v=(self.app.rect.width, 100), width=32),
             particle_factory=partial(self.beam_particle_factory,
@@ -84,7 +83,7 @@ class Demo(GameState):
     @staticmethod
     def launch_emitter(position, emitter):
         e = ecs.create_entity()
-        ecs.add_component(e, 'emitter', emitter())
+        ecs.add_component(e, 'emitter', emitter(ept=LerpThing(100, 10, 0.5)))
         ecs.add_component(e, 'position', Vector2(position))
         ecs.add_component(e, 'lifetime', Cooldown(0.5))
 
@@ -98,8 +97,8 @@ class Demo(GameState):
 
         rsai = ecsc.RSAImage(None, image_factory=squabble_wrapper)
 
-        p = swcs.Particle(scale=LerpThing(vt0=1, vt1=1 / 8, ease=in_quad, interval=1),
-                          alpha=LerpThing(vt0=255, vt1=0, ease=out_quad, interval=1))
+        p = swcs.Particle(scale=LerpThing(1, 1 / 8, 1, ease=in_quad),
+                          alpha=LerpThing(255, 0, 1, ease=out_quad))
 
         ecs.add_component(e, 'rsai', rsai)
         ecs.add_component(e, 'particle', p)
