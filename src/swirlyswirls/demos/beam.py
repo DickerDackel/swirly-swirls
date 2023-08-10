@@ -102,7 +102,7 @@ class Demo(GameState):
                           alpha=LerpThing(vt0=255, vt1=0, ease=out_quad, interval=1))
 
         ecs.add_component(e, 'rsai', rsai)
-        ecs.add_component(e, 'particle', p)6 / 
+        ecs.add_component(e, 'particle', p)
         ecs.add_component(e, 'lifetime', Cooldown(1))
         ecs.add_component(e, 'sprite', ecsc.EVSprite(rsai, group))
         ecs.add_component(e, 'position', Vector2(position))
