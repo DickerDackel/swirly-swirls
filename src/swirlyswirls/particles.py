@@ -197,3 +197,56 @@ poisonsquabble_image_factory = partial(squabble_image_factory,
                                        base_color='palegreen3',
                                        highlight_color='palegreen1')
 poisonsquabble_image_factory.__doc__ = 'See `squabble_image_factory`, palegreen3/palegreen1.'
+
+
+def shard_image_factory(size, alpha, base_color, highlight_color):
+    """Image factory for random shards.
+
+    A shard is a random triangle within a surface of size `size`.
+
+    Parameters
+    ----------
+    size: int
+        Size of the returned surface.
+
+    alpha: int
+        Alpha of the returned surface (0 - 255)
+
+    base_color: pygame.Color
+    highlight_color: pygame.Color
+        Base and edge color of the shard
+
+    Returns
+    -------
+    pygame.surface.Surface
+
+    """
+    surface = pygame.Surface((size, size), pygame.SRCALPHA)
+    p0 = Vector2(random() * size, random() * size)
+    p1 = Vector2(random() * size, random() * size)
+    p2 = Vector2(random() * size, random() * size)
+    pygame.draw.line(surface, highlight_color, p0, p1, width=2)
+    pygame.draw.line(surface, highlight_color, p1, p2, width=2)
+    pygame.draw.line(surface, highlight_color, p2, p0, width=2)
+    p0.move(1, 0)
+    p1.move(1, 0)
+    p2.move(1, 0)
+    pygame.draw.line(surface, highlight_color, p0, p1, width=0)
+    pygame.draw.line(surface, highlight_color, p1, p2, width=0)
+    pygame.draw.line(surface, highlight_color, p2, p0, width=0)
+
+
+watershard_image_factory = partial(shard_image_factory,
+                                   base_color='lightblue',
+                                   highlight_color='white')
+watershard_image_factory.__doc__ = 'See `shard_image_factory`, lightblue/white.'
+
+fireshard_image_factory = partial(shard_image_factory,
+                                  base_color='orange',
+                                  highlight_color='yellow')
+fireshard_image_factory.__doc__ = 'See `shard_image_factory`, orange/yellow.'
+
+poisonshard_image_factory = partial(shard_image_factory,
+                                    base_color='palegreen3',
+                                    highlight_color='palegreen1')
+poisonshard_image_factory.__doc__ = 'See `shard_image_factory`, palegreen3/palegreen1.'
