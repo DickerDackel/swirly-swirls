@@ -7,7 +7,10 @@ from pygame import Vector2
 
 # See Freya Holmer "The simple yet powerful math we don't talk about":
 #     https://www.youtube.com/watch?v=R6UB7mVO3fY
-_lerp     = lambda a, b, t: (1 - t) * a + b * t
+# This is the "official" lerp, but it's about 10% slower than the one with only
+# a single multiplication below.
+# _lerp     = lambda a, b, t: (1 - t) * a + b * t
+_lerp     = lambda a, b, t: t * (b - a) + a
 _inv_lerp = lambda a, b, v: (v - a) / (b - a)
 _remap    = lambda a0, a1, b0, b1, v: _lerp(b0, b1, _inv_lerp(a0, a1, v))
 
@@ -308,11 +311,11 @@ class ZoneRing(Zone):
         """
         r_min = _lerp(self.r_min_t0, self.r_min_t1, t)
         r_max = _lerp(self.r_max_t0, self.r_max_t1, t)
-        r = (r_max - r_min) * self.rnd_p() + r_min
+        r = _lerp(r_min, r_max, self.rnd_p())
 
         phi_min = _lerp(self.phi_min_t0, self.phi_min_t1, t)
         phi_max = _lerp(self.phi_max_t0, self.phi_max_t1, t)
-        phi = (phi_max - phi_min) * self.rnd_p() + phi_min
+        phi = _lerp(phi_min, phi_max, self.rnd_p())
 
         v = Vector2(r, 0).rotate(phi)
 
@@ -410,8 +413,7 @@ class ZoneBeam:
 
     def __post_init__(self, v, width):
         self.v = Vector2(v)
-        self.w = self.v.normalize().rotate(90) * width
-        # self.w = Vector2(self.v.y, self.v.x).normalize() * width
+        self.w = Vector2(-self.v.y, self.v.x).normalize() * width
 
     def emit(self, t=None):
         """Emit a point along the line within `width` distance.
