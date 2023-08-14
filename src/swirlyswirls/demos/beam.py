@@ -11,7 +11,7 @@ from functools import partial
 from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-from pygamehelpers.easing import in_quad, out_quad
+from rpeasings import in_quad, out_quad
 
 
 class Demo(GameState):
