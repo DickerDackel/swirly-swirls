@@ -2,6 +2,7 @@ import tinyecs as ecs
 import swirlyswirls.zones
 
 from dataclasses import dataclass, InitVar
+from itertools import cycle
 
 from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
@@ -44,6 +45,13 @@ class Emitter:
     tick : float = 0.1
         The heartbeat of the emitter.
 
+    ticklist: list[float]
+        Change the heartbeat every time it fires.  This list cycles.  Use it
+        for bullet stacking in patterns, e.g.
+
+            [5/60, 5/60, 5/60, 1]
+
+
     total_emits: int = None
         if set, limit the total number of emits.  If the emitter is exhausted,
         the entity removes itself.
@@ -77,13 +85,15 @@ class Emitter:
     """
     ept: LerpThing
     tick: InitVar[float] = 0.1
+    ticklist: InitVar[list[float]]
     total_emits: InitVar[int] = None
     zone: swirlyswirls.zones.Zone
     particle_factory: callable
     inherit_momentum: int = 3
 
-    def __post_init__(self, tick, total_emits):
+    def __post_init__(self, tick, ticklist, total_emits):
         self.tick = Cooldown(tick, cold=True)
+        self.ticker = cycle(ticklist) if ticklist else cycle([tick])
         self.remaining = total_emits if total_emits is not None else -1
 
 
@@ -137,7 +147,7 @@ def emitter_system(dt, eid, emitter, position):
     if emitter.tick.hot:
         return
 
-    emitter.tick.reset()
+    emitter.tick.reset(next(emitter.ticker))
 
     if emitter.remaining == 0:
         return
