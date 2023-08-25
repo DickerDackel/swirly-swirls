@@ -11,7 +11,7 @@ from functools import partial
 from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-from pygamehelpers.easing import *  # noqa
+from rpeasings import *  # noqa
 
 
 def draw_splash_bubble(size, alpha, highlight_color, base_color):

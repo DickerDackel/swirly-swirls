@@ -26,9 +26,10 @@ dependencies = [
 [project.scripts]
 swirly-demo = "swirlyswirls.demo:main"
 
-[project-urls]
-homepage = "https://github.com/dickerdackel/swirly-swirls"
-bugtracker = "https://github.com/DickerDackel/swirly-swirls/issues"
+[project.urls]
+homepage = "https://github.com/dickerdackel/swirlyswirls"
+bugtracker = "https://github.com/DickerDackel/swirlyswirls/issues"
+changelog = "https://github.com/dickerdackel/swirlyswirls/ChangeLog.md"
 
 [build-system]
 requires = ["setuptools"]

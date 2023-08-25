@@ -12,7 +12,7 @@ from random import triangular
 from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-from pygamehelpers.easing import out_quint
+from rpeasings import out_quint
 
 
 class Demo(GameState):

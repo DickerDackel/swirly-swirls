@@ -11,7 +11,7 @@ from functools import partial
 from pgcooldown import Cooldown, LerpThing
 from pygame import Vector2
 from pygamehelpers.framework import GameState
-from pygamehelpers.easing import *  # noqa: 405
+from rpeasings import *  # noqa: 405
 
 
 class Demo(GameState):
